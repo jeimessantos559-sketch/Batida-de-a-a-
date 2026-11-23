@@ -147,6 +147,7 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 </div></div>
 <p class="sub" id="tv" style="margin:10px 0 0" aria-live="polite"></p>
 <details><summary>+ Observações (endereço, pedido...)</summary><textarea id="co" rows="2"></textarea></details>
+<div id="swarn" class="calcnote" role="alert" hidden style="border:2px solid var(--bad);margin-top:12px"><b id="swt" class="bad" style="display:block;margin-bottom:6px"></b><span id="swm"></span><div class="acts" style="margin-top:10px"><button class="btn small" id="swok" type="button">Vender mesmo assim</button><button class="btn ghost small" id="swno" type="button">Cancelar</button></div></div>
 <button class="btn full" id="add">Salvar</button>
 </div>
 <div class="card">
@@ -496,15 +497,26 @@ document.querySelectorAll('#dseg button').forEach(function(b){var d=+b.getAttrib
 if(nq<1){t.textContent='Só cadastrar o cliente, sem venda.';return}
 var pr=pm==='cartao'?num(P.card):num(P.pix),v=brl(nq*pr);
 t.textContent=pm==='cartao'?'Total: '+v+' no cartão (já recebido)':pm==='pix'?'Total: '+v+' no Pix. Fica em aberto até você marcar "Recebi".':'Fica em aberto: '+v+'. Pagamento em '+fd(nextDue(dd))+'.';
-var fr=freeToday(nfl);if(nq>fr&&prodToday()>0)t.textContent+=fr>0?' Atenção: só '+fr+(fr===1?' garrafa livre':' garrafas livres')+' de '+flName(nfl)+' hoje.':' Atenção: não há '+flName(nfl)+' livre hoje.'}
+$('#swarn').hidden=true;var fr=freeToday(nfl);if(nq>0&&nq>fr)t.textContent+=fr>0?' Atenção: só '+fr+(fr===1?' garrafa livre':' garrafas livres')+' de '+flName(nfl)+' hoje.':' Atenção: não há '+flName(nfl)+' livre hoje.'}
 $('#qm').onclick=function(){nq=Math.max(0,nq-1);$('#qv').textContent=String(nq);showTotal()};
 $('#qp').onclick=function(){nq=Math.min(99,nq+1);$('#qv').textContent=String(nq);showTotal()};
 document.querySelectorAll('#pseg button').forEach(function(b){b.onclick=function(){pm=b.getAttribute('data-m');document.querySelectorAll('#pseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});showTotal()}});
 document.querySelectorAll('#dseg button').forEach(function(b){b.onclick=function(){dd=+b.getAttribute('data-d');document.querySelectorAll('#dseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});showTotal()}});
 showTotal();
 $('#cn').onchange=function(){var k=this.value.trim().toLowerCase();var c=clients.filter(function(x){return (x.name||'').trim().toLowerCase()===k})[0];if(c&&c.phone&&!$('#cp').value)$('#cp').value=c.phone};
+var sOk=false;
+function stockMsg(fid,want){var pr=prodToday(fid),sd=soldToday(fid),du=dueToday(fid),left=pr-sd,fr=left-du,nm=flName(fid);
+if(want<=fr)return null;
+if(pr===0)return ['Sem produção de '+nm+' hoje','Você ainda não lançou nenhuma garrafa de '+nm+' na produção de hoje.'+(du?' E há '+du+' reservada(s) para pedidos de hoje.':'')];
+if(left<=0)return ['Acabou o '+nm,'As '+pr+' garrafas de '+nm+' de hoje já foram vendidas.'];
+if(fr<=0)return ['Garrafa reservada','As '+left+' garrafa(s) de '+nm+' que sobraram estão reservadas para pedidos de hoje ('+du+'). Se vender, vai faltar para algum pedido.'];
+return ['Estoque insuficiente','Só tem '+fr+' garrafa(s) de '+nm+' livre(s) para vender'+(du?' ('+du+' reservada(s) para pedidos de hoje)':'')+', e você está vendendo '+want+'.']}
+$('#swok').onclick=function(){sOk=true;$('#swarn').hidden=true;$('#add').click()};
+$('#swno').onclick=function(){$('#swarn').hidden=true};
 $('#add').onclick=function(){
 var n=$('#cn').value.trim();if(!n){$('#cn').focus();return}
+if(nq>0&&!sOk){var w=stockMsg(nfl,nq);if(w){$('#swt').textContent='⚠ '+w[0];$('#swm').textContent=w[1];$('#swarn').hidden=false;$('#swarn').scrollIntoView({block:'center'});return}}
+sOk=false;$('#swarn').hidden=true;
 var nt=$('#co').value.trim(),ph=$('#cp').value.trim();
 if(busy)return;var key=n.toLowerCase();var ex=clients.filter(function(c){return (c.name||'').trim().toLowerCase()===key})[0]||known[key];
 var qn=nq,mm=pm,du=nextDue(dd),ff=nfl;
