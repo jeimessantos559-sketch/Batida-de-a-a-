@@ -148,7 +148,9 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <p class="sub" id="tv" style="margin:10px 0 0" aria-live="polite"></p>
 <details><summary>+ Observações (endereço, pedido...)</summary><textarea id="co" rows="2"></textarea></details>
 <div id="swarn" class="calcnote" role="alert" hidden style="border:2px solid var(--bad);margin-top:12px"><b id="swt" class="bad" style="display:block;margin-bottom:6px"></b><span id="swm"></span><div class="acts" style="margin-top:10px"><button class="btn small" id="swok" type="button">Vender mesmo assim</button><button class="btn ghost small" id="swno" type="button">Cancelar</button></div></div>
+<label class="ck" style="display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--ink);font-size:15px"><input type="checkbox" id="wauto" style="width:24px;height:24px;flex:none"> Abrir o WhatsApp do cliente com a mensagem e o Pix ao salvar</label>
 <button class="btn full" id="add">Salvar</button>
+<div id="wabox" class="calcnote" hidden style="margin-top:12px"><span id="watx"></span><div class="acts" style="margin-top:10px"><a class="btn small" id="walk" target="_blank" rel="noopener">Enviar no WhatsApp</a><button class="btn ghost small" id="wax" type="button">Fechar</button></div></div>
 </div>
 <div class="card">
 <h2>Planilha de vendas</h2>
@@ -504,6 +506,14 @@ document.querySelectorAll('#pseg button').forEach(function(b){b.onclick=function
 document.querySelectorAll('#dseg button').forEach(function(b){b.onclick=function(){dd=+b.getAttribute('data-d');document.querySelectorAll('#dseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});showTotal()}});
 showTotal();
 $('#cn').onchange=function(){var k=this.value.trim().toLowerCase();var c=clients.filter(function(x){return (x.name||'').trim().toLowerCase()===k})[0];if(c&&c.phone&&!$('#cp').value)$('#cp').value=c.phone};
+function saleMsg(name,flv,value,method){var nm=(name||'').trim().split(' ')[0];
+var t='Olá'+(nm?', '+nm:'')+'! Muito obrigado pela preferência! Sua batida de '+String(flv||'açaí com maracujá').toLowerCase()+' é feita com muito carinho.';
+if(method==='cartao')return t+'\n\nPagamento de '+brl(value)+' no cartão. Até a próxima!';
+t+='\n\nValor a pagar: '+brl(value)+' (Pix).';
+return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX}
+try{$('#wauto').checked=localStorage.getItem('batida-wauto')!=='0'}catch(e){$('#wauto').checked=true}
+$('#wauto').onchange=function(){try{localStorage.setItem('batida-wauto',this.checked?'1':'0')}catch(e){}};
+$('#wax').onclick=function(){$('#wabox').hidden=true};
 var sOk=false;
 function stockMsg(fid,want){var pr=prodToday(fid),sd=soldToday(fid),du=dueToday(fid),left=pr-sd,fr=left-du,nm=flName(fid);
 if(want<=fr)return null;
@@ -520,6 +530,11 @@ sOk=false;$('#swarn').hidden=true;
 var nt=$('#co').value.trim(),ph=$('#cp').value.trim();
 if(busy)return;var key=n.toLowerCase();var ex=clients.filter(function(c){return (c.name||'').trim().toLowerCase()===key})[0]||known[key];
 var qn=nq,mm=pm,du=nextDue(dd),ff=nfl;
+if(qn>0){var phone=ph||(ex&&ex.phone)||'';var prev=ex?owed(cSales(ex)):0;var val=qn*(mm==='cartao'?num(P.card):num(P.pix));
+var msg=saleMsg(n,flName(ff),mm==='cartao'?val:prev+val,mm);var dg=waNum({phone:phone});var url='https://wa.me/'+dg+'?text='+encodeURIComponent(msg);
+$('#walk').href=url;$('#watx').textContent=dg?'Mensagem com o Pix pronta para '+n+'.':'Este cliente não tem WhatsApp cadastrado. Toque abaixo para escolher o contato.';
+var opened=false;if($('#wauto').checked&&dg){try{opened=!!window.open(url,'_blank')}catch(e){}}
+$('#wabox').hidden=opened&&!!dg;if(opened)$('#watx').textContent='WhatsApp aberto para '+n+'.'}
 var done=function(c){if(c&&qn>0)addSale(c,qn,mm,du,0,ff)};
 if(ex){done(ex)}else{busy=true;$('#add').disabled=true;addClient({type:'client',name:n,phone:ph,note:nt,createdAt:Date.now()}).then(function(c){if(c){known[key]=c;setTimeout(function(){delete known[key]},10000)}done(c)}).then(function(){busy=false;$('#add').disabled=false},function(){busy=false;$('#add').disabled=false})}
 $('#cn').value='';$('#cp').value='';$('#co').value='';nq=1;$('#qv').textContent='1';$('#tv').textContent='✔ Salvo!';setTimeout(showTotal,1800);$('#cn').focus()};
