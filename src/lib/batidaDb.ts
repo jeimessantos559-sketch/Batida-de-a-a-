@@ -39,7 +39,7 @@ export function makeBatidaDb(sb: SupabaseClient) {
     }
   }
   const kindOf = (d: Record<string, unknown> | null | undefined, id: string) =>
-    (d && typeof d.type === "string" && d.type) || (id === "pricing" ? "pricing" : "doc");
+    (d && typeof d["type"] === "string" && d["type"]) || (id === "pricing" ? "pricing" : "doc");
   const check = (r: { error: unknown }) => {
     if (r.error) throw r.error;
     later();
@@ -74,7 +74,7 @@ export function makeBatidaDb(sb: SupabaseClient) {
       };
     },
     onSnapshot(cb: (snap: unknown) => void, err?: (e: unknown) => void) {
-      const s: Sub = { cb, err };
+      const s: Sub = err ? { cb, err } : { cb };
       subs.add(s);
       ensureChannel();
       refresh();
