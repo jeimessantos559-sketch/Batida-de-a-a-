@@ -69,6 +69,23 @@ a.btn{text-decoration:none;display:inline-block}
 .seg{display:flex;gap:8px}.seg button{flex:1;padding:14px 6px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.seg button[aria-checked="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 details{margin-top:10px}summary{cursor:pointer;color:var(--mute);font-size:14px;font-weight:600;padding:6px 0}
 [hidden]{display:none!important}
+/* ---- navegação tipo app ---- */
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.topbar{position:sticky;top:0;z-index:5;background:var(--bg);margin:-16px -16px 12px;padding:12px 16px 10px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.topbar b{font-size:20px}.topbar span{color:var(--mute);font-size:13px}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+.bnav div{display:flex;width:100%;max-width:560px}
+.bnav button{flex:1;min-width:0;background:none;border:0;color:var(--mute);font:inherit;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:12px;cursor:pointer;min-height:52px}
+.bnav button svg{width:24px;height:24px}
+.bnav button[aria-current="page"]{color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent)}
+.bnav button.sell{color:var(--brand-ink);background:var(--brand);margin:0 4px}
+.bnav button.sell[aria-current="page"]{outline:3px solid var(--accent)}
+.quick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.quick button{padding:14px 6px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
+.quick svg{width:26px;height:26px;color:var(--brand)}
+.subtabs{display:flex;gap:6px;margin-bottom:12px}.subtabs button{flex:1;padding:10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.subtabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tabs{display:none!important}
+
 </style>
 </head>
 <body>
@@ -745,6 +762,7 @@ var ECAT=[['acai','Açaí'],['fruta','Frutas'],['leite','Leite e derivados'],['e
 function ecName(k){var c=ECAT.filter(function(x){return x[0]===k})[0];return c?c[1]:'Outros'}
 function renderECat(){var b=$('#eseg');b.textContent='';ECAT.forEach(function(c){var x=el('button','',c[1]);x.setAttribute('role','radio');x.setAttribute('aria-checked',c[0]===ecat);x.onclick=function(){ecat=c[0];renderECat()};b.appendChild(x)})}
 function inEPer(e){var t=e.date||0,d=new Date();if(eper==='day')return sod(t)===sod(Date.now());if(eper==='month'){var x=new Date(t);return x.getMonth()===d.getMonth()&&x.getFullYear()===d.getFullYear()}return true}
+window.__renderExp=function(){renderExp()};
 function renderExp(){if(!$('#elist'))return;var box=$('#elist');box.textContent='';
 document.querySelectorAll('#eper button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-p')===eper)});
 var l=expenses.filter(inEPer).sort(function(a,b){return (b.date||0)-(a.date||0)||(b.createdAt||0)-(a.createdAt||0)});
@@ -780,6 +798,68 @@ var p=s.docs.find(function(x){return x.id==='pricing'});
 if(!gotRemote){gotRemote=true;if(p){Object.assign(P,JSON.parse(JSON.stringify(p.data())))}if(migrateP())saveP();ensureFl();fillPricing();renderFl()}
 renderClients();renderOrders();renderExp();fillMonths();if(gotRemote)runArchive()},function(){});
 })}).catch(function(){})}
+})();
+</script>
+<script>
+(function(){
+var $=function(q){return document.querySelector(q)};
+function card(sel){var e=$(sel);while(e&&!(e.classList&&e.classList.contains('card')))e=e.parentElement;return e}
+var main=document.querySelector('main');
+var I={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+sell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+ped:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>',
+cli:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.8 3 2.6 3.5 5.2"/></svg>',
+more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>'};
+// seções novas
+function sec(id){var d=document.createElement('section');d.id=id;d.hidden=true;main.appendChild(d);return d}
+var S={home:sec('vHome'),sell:sec('vSell'),ped:$('#p3'),cli:sec('vCli'),more:sec('vMore')};
+// barra do topo
+var tb=document.createElement('div');tb.className='topbar';tb.innerHTML='<b id="tbt">Início</b><span id="tbd"></span>';main.insertBefore(tb,main.firstChild);
+var h1=main.querySelector('h1');if(h1)h1.hidden=true;var wh=$('#where');if(wh)wh.hidden=true;
+$('#tbd').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+// Início: atalhos, cobranças, produção, resumo
+var q=document.createElement('div');q.className='quick';
+q.innerHTML='<button type="button" data-go="sell">'+I.sell+'Nova venda</button><button type="button" data-go="ped">'+I.ped+'Novo pedido</button><button type="button" data-go="gastos">'+I.cash+'Lançar gasto</button>';
+S.home.appendChild(q);
+var cob=$('#cob');if(cob)S.home.appendChild(cob);
+var prod=card('#sth');if(prod)S.home.appendChild(prod);
+var sum=card('#sv0');if(sum)S.home.appendChild(sum);
+// Vender
+var sell=card('#cn');if(sell)S.sell.appendChild(sell);
+// Clientes
+var cl=card('#cc');if(cl)S.cli.appendChild(cl);
+// Mais: Gastos | Preços | Planilha
+var st=document.createElement('div');st.className='subtabs';st.innerHTML='<button type="button" data-m="gastos" aria-pressed="true">Gastos</button><button type="button" data-m="precos" aria-pressed="false">Preços</button><button type="button" data-m="plan" aria-pressed="false">Planilha</button>';
+S.more.appendChild(st);
+var mG=$('#p4'),mP=$('#p2'),mX=document.createElement('section');var xc=card('#xb');if(xc)mX.appendChild(xc);
+[mG,mP,mX].forEach(function(x){if(x){S.more.appendChild(x)}});
+var p1=$('#p1');if(p1)p1.hidden=true;
+function showMore(m){[['gastos',mG],['precos',mP],['plan',mX]].forEach(function(a){if(a[1])a[1].hidden=a[0]!==m});st.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-m')===m)});
+if(m==='gastos'&&typeof window.__renderExp==='function')window.__renderExp();try{localStorage.setItem('batida-more',m)}catch(e){}}
+st.querySelectorAll('button').forEach(function(b){b.onclick=function(){showMore(b.getAttribute('data-m'))}});
+// barra de baixo
+var nav=document.createElement('nav');nav.className='bnav';nav.setAttribute('aria-label','Menu');
+var items=[['home','Início',I.home],['ped','Pedidos',I.ped],['sell','Vender',I.sell],['cli','Clientes',I.cli],['more','Mais',I.more]];
+var inner=document.createElement('div');
+items.forEach(function(it){var b=document.createElement('button');b.type='button';b.setAttribute('data-v',it[0]);if(it[0]==='sell')b.className='sell';b.innerHTML=it[2]+'<span>'+it[1]+'</span>';b.onclick=function(){go(it[0])};inner.appendChild(b)});
+nav.appendChild(inner);document.body.appendChild(nav);
+var TITLE={home:'Início',sell:'Nova venda',ped:'Pedidos',cli:'Clientes',more:'Mais'};
+function go(v){var m=null;if(v==='gastos'){m='gastos';v='more'}
+Object.keys(S).forEach(function(k){if(S[k])S[k].hidden=k!==v});
+nav.querySelectorAll('button').forEach(function(b){if(b.getAttribute('data-v')===v)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+$('#tbt').textContent=TITLE[v];
+if(v==='ped'){var t3=$('#t3');if(t3)t3.click();S.ped.hidden=false}
+if(v==='more'){var mm=m;if(!mm){try{mm=localStorage.getItem('batida-more')}catch(e){}}showMore(mm||'gastos')}
+if(v==='ped'&&m===null){}
+try{localStorage.setItem('batida-view',v)}catch(e){}
+window.scrollTo(0,0);
+if(v==='sell'){var cn=$('#cn');if(cn&&window.innerWidth>700)cn.focus()}
+if(v==='ped'&&window.__focusNewOrder){window.__focusNewOrder=false;var on=$('#on');if(on)on.scrollIntoView({block:'center'})}}
+q.querySelectorAll('button').forEach(function(b){b.onclick=function(){var g=b.getAttribute('data-go');if(g==='ped')window.__focusNewOrder=true;go(g)}});
+// depois de salvar uma venda, volta pro Início? não: fica para lançar outra.
+var start='home';try{start=localStorage.getItem('batida-view')||'home'}catch(e){}
+if(!S[start])start='home';go(start);
 })();
 </script>
 </body>
