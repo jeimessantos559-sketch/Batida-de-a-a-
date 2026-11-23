@@ -252,7 +252,7 @@ var P={yield:10,ing:[{n:'Açaí',v:0},{n:'Maracujá',v:0},{n:'Leite ou outros',v
 var clients=[],sales=[],orders=[],archives=[],expenses=[],col=null,gotRemote=false,migrated=false,q='',timer=null,openId=null;
 try{var d=JSON.parse(localStorage.getItem(LS)||'null');if(d){clients=d.clients||[];sales=d.sales||[];orders=d.orders||[];archives=d.archives||[];expenses=d.expenses||[];Object.assign(P,d.P||{})}}catch(e){}
 function lsSave(){try{localStorage.setItem(LS,JSON.stringify({clients:col?[]:clients,sales:col?[]:sales,orders:col?[]:orders,archives:col?[]:archives,expenses:col?[]:expenses,P:P}))}catch(e){}}
-function saveP(){syncFl();clearTimeout(timer);timer=setTimeout(function(){if(col){col.doc('pricing').set(P).catch(function(){})}lsSave()},500)}
+function saveP(){syncFl();clearTimeout(timer);timer=setTimeout(function(){if(col&&gotRemote){col.doc('pricing').set(P).catch(function(){})}lsSave()},500)}
 
 function tab(n){[1,2,3,4].forEach(function(k){$('#p'+k).hidden=n!==k;$('#t'+k).setAttribute('aria-selected',n===k)});if(n===3)renderOrders()}
 $('#t1').onclick=function(){tab(1)};$('#t3').onclick=function(){tab(3)};$('#t4').onclick=function(){tab(4)};$('#t2').onclick=function(){tab(2)};
@@ -363,7 +363,7 @@ if(migrateP())setTimeout(saveP,0);
 ensureFl();
 function inPer(s){var t=s.createdAt||0,d=new Date();if(per==='day')return sod(t)===sod(Date.now());if(per==='month'){var x=new Date(t);return x.getMonth()===d.getMonth()&&x.getFullYear()===d.getFullYear()}return true}
 function profit(s){var v=val(s),m=s.paid?(s.paidMethod||s.method):s.method;if(m==='cartao')v*=1-num(P.fee)/100;return v-unitCost()*num(s.qty)}
-function saveNow(){syncFl();clearTimeout(timer);if(col){col.doc('pricing').set(P).catch(function(){})}lsSave()}
+function saveNow(){syncFl();clearTimeout(timer);if(col&&gotRemote){col.doc('pricing').set(P).catch(function(){})}lsSave()}
 function ensureFl(){if(!Array.isArray(P.flavors)||!P.flavors.length){P.flavors=[{id:'f1',name:'Açaí com Maracujá',ing:P.ing||[],yield:P.yield||1}];P.cf=0}
 if(!(P.cf>=0&&P.cf<P.flavors.length))P.cf=0;var f=P.flavors[P.cf];if(!Array.isArray(f.ing))f.ing=[];P.ing=f.ing;P.yield=f.yield;
 if(!P.prodBy||typeof P.prodBy!=='object')P.prodBy={};if(P.prod&&!Object.keys(P.prodBy).length&&sod(P.prodDay||0)===sod(Date.now()))P.prodBy[P.flavors[0].id]=Number(P.prod)||0}
