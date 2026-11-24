@@ -127,6 +127,8 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 
 <section id="p1">
 <div class="card" id="cob" hidden><h2 id="cobh">Cobranças de hoje</h2><div id="cobl"></div></div>
+<div class="card" id="cobn" hidden><h2>Próximas cobranças</h2><div id="cobnl"></div></div>
+<div class="card" id="notif" hidden><b>🔔 Lembretes de cobrança</b><p class="sub" id="notift" style="margin:6px 0 10px">Receba um aviso no celular quando tiver cobrança no dia (ao abrir o app).</p><button class="btn small" id="notifb" type="button">Ativar avisos</button></div>
 <div class="card">
 <h2>Nova venda</h2>
 <label for="cn">Nome do cliente</label><input id="cn" autocomplete="off" list="cl" placeholder="Nome"><datalist id="cl"></datalist>
@@ -144,7 +146,8 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div class="seg" id="dseg" role="radiogroup" aria-labelledby="dl">
 <button role="radio" aria-checked="true" data-d="5">Dia 05</button>
 <button role="radio" aria-checked="false" data-d="20">Dia 20</button>
-</div></div>
+<button role="radio" aria-checked="false" data-d="0">Outra data</button>
+</div><input type="date" id="dcustom" aria-label="Data do pagamento" hidden style="margin-top:8px"></div>
 <p class="sub" id="tv" style="margin:10px 0 0" aria-live="polite"></p>
 <details><summary>+ Observações (endereço, pedido...)</summary><textarea id="co" rows="2"></textarea></details>
 <div id="swarn" class="calcnote" role="alert" hidden style="border:2px solid var(--bad);margin-top:12px"><b id="swt" class="bad" style="display:block;margin-bottom:6px"></b><span id="swm"></span><div class="acts" style="margin-top:10px"><button class="btn small" id="swok" type="button">Vender mesmo assim</button><button class="btn ghost small" id="swno" type="button">Cancelar</button></div></div>
@@ -185,7 +188,8 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div class="seg" id="odseg" role="radiogroup" aria-labelledby="odl">
 <button role="radio" aria-checked="true" data-d="5">Dia 05</button>
 <button role="radio" aria-checked="false" data-d="20">Dia 20</button>
-</div></div>
+<button role="radio" aria-checked="false" data-d="0">Outra data</button>
+</div><input type="date" id="odcustom" aria-label="Data do pagamento" hidden style="margin-top:8px"></div>
 <details><summary>+ Observações (endereço, horário...)</summary><textarea id="ono" rows="2"></textarea></details>
 <label class="ck" style="display:flex;align-items:center;gap:10px;margin:14px 0 0;color:var(--ink);font-size:15px"><input type="checkbox" id="opaid" style="width:24px;height:24px;flex:none"> Cliente já pagou (falta só entregar)</label>
 <p class="sub" id="otv" style="margin:10px 0 0" aria-live="polite"></p>
@@ -306,16 +310,14 @@ var dt=el('div','dt');dt.appendChild(el('span','','Compra de '+fd(s.createdAt||D
 var x=el('button','btn ghost small','Excluir compra');x.onclick=function(){del=!del;r.style.opacity=del?.4:1;x.textContent=del?'Desfazer':'Excluir compra'};dt.appendChild(x);r.appendChild(dt);
 var q=inp(s.qty,'Quantidade','numeric');
 var m=document.createElement('select');m.setAttribute('aria-label','Forma de pagamento');[['pix','Pix'],['cartao','Cartão'],['fiado','Pagar depois']].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];if(s.method===o[0])op.selected=true;m.appendChild(op)});
-var d=document.createElement('select');d.setAttribute('aria-label','Dia do pagamento');
-var opts=[];if(s.due)opts.push([s.due,'Dia '+fd(s.due)]);[5,20].forEach(function(k){var t=nextDue(k);if(!s.due||sod(t)!==sod(s.due))opts.push([t,'Dia '+fd(t)])});
-opts.forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];d.appendChild(op)});
+var d=document.createElement('input');d.type='date';d.setAttribute('aria-label','Data do pagamento');d.value=iso(s.due||nextDue(5));
 var pc=el('label','ck');var cb=document.createElement('input');cb.type='checkbox';cb.checked=!!s.paid;pc.appendChild(cb);pc.appendChild(document.createTextNode('Já recebi o pagamento'));
 var sync=function(){d.style.visibility=m.value==='fiado'?'visible':'hidden'};m.onchange=function(){if(m.value==='cartao')cb.checked=true;sync()};sync();
 var fs=document.createElement('select');fs.setAttribute('aria-label','Sabor');fs.style.gridColumn='1/-1';fls().forEach(function(f){var op=document.createElement('option');op.value=f.id;op.textContent=f.name;if(f.id===flOf(s))op.selected=true;fs.appendChild(op)});
 r.appendChild(fs);r.appendChild(q);r.appendChild(m);r.appendChild(d);r.appendChild(pc);w.appendChild(r);
 rows.push(function(){if(del)return delSale(s);
 var qn=Math.max(1,Math.round(num(q.value))||1),mm=m.value,pr=mm==='cartao'?num(P.card):num(P.pix);
-var u={fl:fs.value,qty:qn,method:mm,total:qn*pr,paid:cb.checked,due:mm==='fiado'?+d.value:null};
+var u={fl:fs.value,qty:qn,method:mm,total:qn*pr,paid:cb.checked,due:mm==='fiado'?fromIso(d.value):null};
 if(cb.checked){u.paidMethod=s.paid&&s.paidMethod?s.paidMethod:(mm==='cartao'?'cartao':'pix');u.paidAt=s.paidAt||Date.now()}else{u.paidMethod=null;u.paidAt=null}
 if(col)Object.keys(u).forEach(function(k){if(u[k]===null)u[k]=null});
 return upd(s.id,u,sales)})});
@@ -446,11 +448,29 @@ var t='Olá'+(nm?', '+nm:'')+'! '+(late?'Lembrete: o pagamento da sua batida de 
 t+='\n\nValor a pagar: '+brl(tot)+' (Pix).';
 t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX;
 return t}
+function renderNext(today){var box=$('#cobnl');if(!box)return;box.textContent='';var lim=today+8*864e5,items=[];
+sales.forEach(function(s){if(pend(s)&&s.method==='fiado'&&s.due&&sod(s.due)>today&&sod(s.due)<lim){var c=clients.filter(function(x){return x.id===s.clientId})[0];items.push({n:c?c.name:'Cliente',d:s.due,v:val(s)})}});
+orders.forEach(function(o){if(o.status!=='done'&&o.method==='fiado'&&!o.paid&&o.due&&sod(o.due)>today&&sod(o.due)<lim)items.push({n:o.name,d:o.due,v:num(o.qty)*num(P.pix)})});
+items.sort(function(a,b){return a.d-b.d});$('#cobn').hidden=!items.length;
+items.forEach(function(it){var r=el('div','res');var dd2=sod(it.d)===today+864e5?'amanhã':fd(it.d);r.appendChild(el('span','',it.n+' · '+dd2));r.appendChild(el('b','',brl(it.v)));box.appendChild(r)})}
+function notifState(){try{return ('Notification' in window)?Notification.permission:'unsupported'}catch(e){return 'unsupported'}}
+function notifyDue(n,v){var st=notifState();var nb=$('#notif');if(nb)nb.hidden=st==='granted'||st==='unsupported'||st==='denied';
+if(!n||st!=='granted')return;var key='batida-notif-'+iso(Date.now());try{if(localStorage.getItem(key))return;localStorage.setItem(key,'1')}catch(e){}
+var body='Hoje tem '+n+(n===1?' cobrança':' cobranças')+' para fazer ('+brl(v)+'). Abra o app e toque em Cobrar no WhatsApp.';
+var opt={body:body,icon:'/icons/icon-192.png',badge:'/icons/icon-192.png',tag:'cobrancas'};
+try{if(navigator.serviceWorker){navigator.serviceWorker.ready.then(function(r){r.showNotification('Batida de Açaí',opt)}).catch(function(){try{new Notification('Batida de Açaí',opt)}catch(e){}})}else{new Notification('Batida de Açaí',opt)}}catch(e){}}
+$('#notifb').onclick=function(){try{Notification.requestPermission().then(function(p){if(p==='granted'){$('#notif').hidden=true;renderCob()}else{$('#notift').textContent='Os avisos foram bloqueados. Para ativar, libere as notificações do site nas configurações do navegador.'}})}catch(e){$('#notift').textContent='Este celular não permite avisos por aqui.'}};
 function renderCob(){
 var box=$('#cobl');box.textContent='';var today=sod(Date.now()),by={};
 sales.forEach(function(s){if(pend(s)&&s.method==='fiado'&&s.due&&sod(s.due)<=today){(by[s.clientId]=by[s.clientId]||[]).push(s)}});
-var ids=Object.keys(by);$('#cob').hidden=!ids.length;
-$('#cobh').textContent='Cobranças de hoje e atrasadas ('+ids.length+')';
+var ordDue=orders.filter(function(o){return o.status!=='done'&&o.method==='fiado'&&!o.paid&&o.due&&sod(o.due)<=today});
+var ids=Object.keys(by);$('#cob').hidden=!ids.length&&!ordDue.length;
+ordDue.forEach(function(o){var r=el('div','cl');r.appendChild(el('b','',o.name||'Cliente'));var v2=num(o.qty)*num(P.pix);
+r.appendChild(el('div','meta',brl(v2)+' · pedido ainda não entregue · '+(sod(o.due)<today?'atrasado desde '+fd(o.due):'vence hoje')));
+var a=el('div','acts');var w=el('a','btn small','Cobrar no WhatsApp');w.href='https://wa.me/'+waNum(o)+'?text='+encodeURIComponent(cobMsg(o,[{due:o.due,total:v2,qty:o.qty}]));w.target='_blank';w.rel='noopener';a.appendChild(w);
+var b=el('button','btn ghost small','Recebi');b.onclick=function(){updOrder(o,{paid:true,paidAt:Date.now(),method:'pix',due:null})};a.appendChild(b);r.appendChild(a);box.appendChild(r)});
+renderNext(today);notifyDue(ids.length+ordDue.length,Object.keys(by).reduce(function(t,k){return t+by[k].reduce(function(u,s){return u+val(s)},0)},0)+ordDue.reduce(function(t,o){return t+num(o.qty)*num(P.pix)},0));
+$('#cobh').textContent='🔔 Cobrar hoje ('+(ids.length+ordDue.length)+')';
 ids.forEach(function(id){
 var c=clients.filter(function(x){return x.id===id})[0];if(!c)return;
 var l=by[id].sort(function(a,b){return a.due-b.due}),tot=l.reduce(function(t,s){return t+val(s)},0);
@@ -495,14 +515,16 @@ return box}
 var nq=1,pm='pix',dd=nextDue(5)<nextDue(20)?5:20,busy=false,known={};
 document.querySelectorAll('#dseg button').forEach(function(x){x.setAttribute('aria-checked',+x.getAttribute('data-d')===dd)});
 function showTotal(){var t=$('#tv');$('#dueRow').hidden=pm!=='fiado';
-document.querySelectorAll('#dseg button').forEach(function(b){var d=+b.getAttribute('data-d');b.textContent='Dia '+(d<10?'0':'')+d+' ('+fd(nextDue(d))+')'});
+document.querySelectorAll('#dseg button').forEach(function(b){var d=+b.getAttribute('data-d');if(d)b.textContent='Dia '+(d<10?'0':'')+d+' ('+fd(nextDue(d))+')'});$('#dcustom').hidden=dd!==0;
 if(nq<1){t.textContent='Só cadastrar o cliente, sem venda.';return}
 var pr=pm==='cartao'?num(P.card):num(P.pix),v=brl(nq*pr);
-t.textContent=pm==='cartao'?'Total: '+v+' no cartão (já recebido)':pm==='pix'?'Total: '+v+' no Pix. Fica em aberto até você marcar "Recebi".':'Fica em aberto: '+v+'. Pagamento em '+fd(nextDue(dd))+'.';
+t.textContent=pm==='cartao'?'Total: '+v+' no cartão (já recebido)':pm==='pix'?'Total: '+v+' no Pix. Fica em aberto até você marcar "Recebi".':'Fica em aberto: '+v+'. Pagamento em '+fd(dueV())+'.';
 $('#swarn').hidden=true;var fr=freeToday(nfl);if(nq>0&&nq>fr)t.textContent+=fr>0?' Atenção: só '+fr+(fr===1?' garrafa livre':' garrafas livres')+' de '+flName(nfl)+' hoje.':' Atenção: não há '+flName(nfl)+' livre hoje.'}
 $('#qm').onclick=function(){nq=Math.max(0,nq-1);$('#qv').textContent=String(nq);showTotal()};
 $('#qp').onclick=function(){nq=Math.min(99,nq+1);$('#qv').textContent=String(nq);showTotal()};
 document.querySelectorAll('#pseg button').forEach(function(b){b.onclick=function(){pm=b.getAttribute('data-m');document.querySelectorAll('#pseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});showTotal()}});
+function dueV(){return dd?nextDue(dd):fromIso($('#dcustom').value)}
+$('#dcustom').value=iso(Date.now()+7*864e5);$('#dcustom').onchange=function(){showTotal()};
 document.querySelectorAll('#dseg button').forEach(function(b){b.onclick=function(){dd=+b.getAttribute('data-d');document.querySelectorAll('#dseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});showTotal()}});
 showTotal();
 $('#cn').onchange=function(){var k=this.value.trim().toLowerCase();var c=clients.filter(function(x){return (x.name||'').trim().toLowerCase()===k})[0];if(c&&c.phone&&!$('#cp').value)$('#cp').value=c.phone};
@@ -529,7 +551,7 @@ if(nq>0&&!sOk){var w=stockMsg(nfl,nq);if(w){$('#swt').textContent='⚠ '+w[0];$(
 sOk=false;$('#swarn').hidden=true;
 var nt=$('#co').value.trim(),ph=$('#cp').value.trim();
 if(busy)return;var key=n.toLowerCase();var ex=clients.filter(function(c){return (c.name||'').trim().toLowerCase()===key})[0]||known[key];
-var qn=nq,mm=pm,du=nextDue(dd),ff=nfl;
+var qn=nq,mm=pm,du=dueV(),ff=nfl;
 if(qn>0){var phone=ph||(ex&&ex.phone)||'';var prev=ex?owed(cSales(ex)):0;var val=qn*(mm==='cartao'?num(P.card):num(P.pix));
 var msg=saleMsg(n,flName(ff),mm==='cartao'?val:prev+val,mm);var dg=waNum({phone:phone});var url='https://wa.me/'+dg+'?text='+encodeURIComponent(msg);
 $('#walk').href=url;$('#watx').textContent=dg?'Mensagem com o Pix pronta para '+n+'.':'Este cliente não tem WhatsApp cadastrado. Toque abaixo para escolher o contato.';
@@ -581,12 +603,14 @@ function fromIso(v){var a=(v||'').split('-');return a.length===3?new Date(+a[0],
 $('#od').value=iso(Date.now()+864e5);
 document.querySelectorAll('#odseg button').forEach(function(x){x.setAttribute('aria-checked',+x.getAttribute('data-d')===odd)});
 function oTotal(){var pd=$('#opaid')&&$('#opaid').checked;$('#odueRow').hidden=opm!=='fiado'||pd;var fb=document.querySelector('#opseg button[data-m=fiado]');if(fb){fb.disabled=pd;if(pd&&opm==='fiado'){opm='pix';document.querySelectorAll('#opseg button').forEach(function(x){x.setAttribute('aria-checked',x.getAttribute('data-m')==='pix')})}}
-document.querySelectorAll('#odseg button').forEach(function(b){var d=+b.getAttribute('data-d');b.textContent='Dia '+(d<10?'0':'')+d+' ('+fd(nextDue(d))+')'});
-var pr=opm==='cartao'?num(P.card):num(P.pix);$('#otv').textContent='Total do pedido: '+brl(oq*pr)+(opm==='fiado'?' · paga em '+fd(nextDue(odd)):opm==='cartao'?' no cartão':' no Pix')+(pd?' · já pago':'');
+document.querySelectorAll('#odseg button').forEach(function(b){var d=+b.getAttribute('data-d');if(d)b.textContent='Dia '+(d<10?'0':'')+d+' ('+fd(nextDue(d))+')'});$('#odcustom').hidden=odd!==0;
+var pr=opm==='cartao'?num(P.card):num(P.pix);$('#otv').textContent='Total do pedido: '+brl(oq*pr)+(opm==='fiado'?' · paga em '+fd(oDueV()):opm==='cartao'?' no cartão':' no Pix')+(pd?' · já pago':'');
 var dd2=fromIso($('#od').value),tot2=ordersFor(dd2)+oq;$('#otv').textContent+=' · Total de pedidos para '+fd(dd2)+': '+tot2+(tot2===1?' garrafa':' garrafas')+'.'}
 $('#oqm').onclick=function(){oq=Math.max(1,oq-1);$('#oqv').textContent=String(oq);oTotal()};
 $('#oqp').onclick=function(){oq=Math.min(99,oq+1);$('#oqv').textContent=String(oq);oTotal()};
 document.querySelectorAll('#opseg button').forEach(function(b){b.onclick=function(){opm=b.getAttribute('data-m');document.querySelectorAll('#opseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});oTotal()}});
+function oDueV(){return odd?nextDue(odd):fromIso($('#odcustom').value)}
+$('#odcustom').value=iso(Date.now()+7*864e5);$('#odcustom').onchange=function(){oTotal()};
 document.querySelectorAll('#odseg button').forEach(function(b){b.onclick=function(){odd=+b.getAttribute('data-d');document.querySelectorAll('#odseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});oTotal()}});
 $('#on').onchange=function(){var k=this.value.trim().toLowerCase();var c=clients.filter(function(x){return (x.name||'').trim().toLowerCase()===k})[0];if(c&&c.phone&&!$('#op').value)$('#op').value=c.phone};
 $('#od').onchange=function(){oTotal()};$('#opaid').onchange=function(){oTotal()};
@@ -596,7 +620,7 @@ function updOrder(o,u){if(col)return col.doc(o.id).update(u).catch(function(){})
 function delOrder(o){if(col)return col.doc(o.id).delete().catch(function(){});orders=orders.filter(function(x){return x.id!==o.id});lsSave();renderOrders()}
 $('#oadd').onclick=function(){
 var n=$('#on').value.trim();if(!n){$('#on').focus();return}if(obusy)return;
-var pd=$('#opaid').checked;saveOrder({type:'order',fl:onfl,paid:pd,paidAt:pd?Date.now():null,name:n,phone:$('#op').value.trim(),qty:oq,method:opm,due:opm==='fiado'&&!pd?nextDue(odd):null,delivery:fromIso($('#od').value),note:$('#ono').value.trim(),status:'todo',createdAt:Date.now()});
+var pd=$('#opaid').checked;saveOrder({type:'order',fl:onfl,paid:pd,paidAt:pd?Date.now():null,name:n,phone:$('#op').value.trim(),qty:oq,method:opm,due:opm==='fiado'&&!pd?oDueV():null,delivery:fromIso($('#od').value),note:$('#ono').value.trim(),status:'todo',createdAt:Date.now()});
 $('#on').value='';$('#op').value='';$('#ono').value='';$('#opaid').checked=false;oq=1;$('#oqv').textContent='1';$('#otv').textContent='✔ Pedido salvo!';setTimeout(oTotal,1800)};
 function clientFor(name,phone){var key=name.trim().toLowerCase();
 var c=clients.filter(function(x){return (x.name||'').trim().toLowerCase()===key})[0]||known[key];
@@ -618,15 +642,14 @@ var n=fld('Nome',inp(o.name,'Nome')),ph=fld('WhatsApp',inp(o.phone,'WhatsApp','t
 var q=fld('Quantidade de garrafas',inp(o.qty,'Quantidade','numeric'));
 var dt=document.createElement('input');dt.type='date';dt.value=iso(o.delivery||Date.now());fld('Data de entrega',dt);
 var m=document.createElement('select');[['pix','Pix'],['cartao','Cartão'],['fiado','Pagar depois']].forEach(function(x){var op=document.createElement('option');op.value=x[0];op.textContent=x[1];if(o.method===x[0])op.selected=true;m.appendChild(op)});fld('Forma de pagamento',m);
-var d=document.createElement('select');var opts=[];if(o.due)opts.push([o.due,'Dia '+fd(o.due)]);[5,20].forEach(function(k){var t=nextDue(k);if(!o.due||sod(t)!==sod(o.due))opts.push([t,'Dia '+fd(t)])});
-opts.forEach(function(x){var op=document.createElement('option');op.value=x[0];op.textContent=x[1];d.appendChild(op)});var dl=fld('Dia do pagamento',d);
+var d=document.createElement('input');d.type='date';d.value=iso(o.due||nextDue(5));var dl=fld('Data do pagamento',d);
 var sync=function(){var on=m.value==='fiado';d.hidden=!on;dl.previousSibling.hidden=!on};m.onchange=sync;sync();
 var fsel=document.createElement('select');fls().forEach(function(f){var op=document.createElement('option');op.value=f.id;op.textContent=f.name;if(f.id===flOf(o))op.selected=true;fsel.appendChild(op)});fld('Sabor',fsel);
 var nt=fld('Observações',inp(o.note,'Observações'));
 var pl=el('label','ck');pl.style.cssText='display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--ink)';var pc=document.createElement('input');pc.type='checkbox';pc.checked=!!o.paid;pc.style.cssText='width:22px;height:22px';pl.appendChild(pc);pl.appendChild(document.createTextNode('Cliente já pagou'));w.appendChild(pl);
 var a=el('div','acts');a.style.marginTop='12px';
 var sv=el('button','btn small','Salvar correções');sv.onclick=function(){
-var mm=m.value,pd=pc.checked;if(pd&&mm==='fiado')mm='pix';updOrder(o,{fl:fsel.value,name:n.value.trim()||o.name,phone:ph.value.trim(),qty:Math.max(1,Math.round(num(q.value))||1),delivery:fromIso(dt.value),method:mm,due:mm==='fiado'&&!pd?+d.value:null,note:nt.value.trim(),paid:pd,paidAt:pd?(o.paidAt||Date.now()):null});oEdit=null;renderOrders()};
+var mm=m.value,pd=pc.checked;if(pd&&mm==='fiado')mm='pix';updOrder(o,{fl:fsel.value,name:n.value.trim()||o.name,phone:ph.value.trim(),qty:Math.max(1,Math.round(num(q.value))||1),delivery:fromIso(dt.value),method:mm,due:mm==='fiado'&&!pd?fromIso(d.value):null,note:nt.value.trim(),paid:pd,paidAt:pd?(o.paidAt||Date.now()):null});oEdit=null;renderOrders()};
 var cc=el('button','btn ghost small','Cancelar');cc.onclick=function(){oEdit=null;renderOrders()};
 a.appendChild(sv);a.appendChild(cc);w.appendChild(a);return w}
 function renderOrders(){
@@ -849,7 +872,7 @@ $('#tbd').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day
 var q=document.createElement('div');q.className='quick';
 q.innerHTML='<button type="button" data-go="sell">'+I.sell+'Nova venda</button><button type="button" data-go="ped">'+I.ped+'Novo pedido</button><button type="button" data-go="gastos">'+I.cash+'Lançar gasto</button>';
 S.home.appendChild(q);
-var cob=$('#cob');if(cob)S.home.appendChild(cob);
+var cob=$('#cob');if(cob)S.home.appendChild(cob);['#cobn','#notif'].forEach(function(id){var e=$(id);if(e)S.home.appendChild(e)});
 var prod=card('#sth');if(prod)S.home.appendChild(prod);
 var sum=card('#sv0');if(sum)S.home.appendChild(sum);
 // Vender
