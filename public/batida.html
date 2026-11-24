@@ -443,7 +443,10 @@ $('#perprev').onclick=function(){perStep(-1)};$('#pernext').onclick=function(){p
 $('#perd').onchange=function(){var v=this.value;if(!v)return;var a=v.split('-');perDay=new Date(+a[0],+a[1]-1,+a[2]).getTime();renderSummary()};
 var PIX='00020126580014BR.GOV.BCB.PIX0136e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac520400005303986540515.005802BR5925Jeimes Andrei Barbosa dos6009SAO PAULO62140510AzUOIc6jSw63047121';
 var PIX30='00020126580014BR.GOV.BCB.PIX0136e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac520400005303986540530.005802BR5925Jeimes Andrei Barbosa dos6009SAO PAULO62140510fh46Oqkypr6304CE38';
-function pixFor(v){return Math.round(num(v)*100)===3000?PIX30:PIX}
+function pixCrc(s){var c=0xFFFF;for(var i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(var j=0;j<8;j++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return ('000'+c.toString(16).toUpperCase()).slice(-4)}
+function pixF(id,v){return id+('0'+v.length).slice(-2)+v}
+function pixMake(v,tx){var p=pixF('00','01')+pixF('26',pixF('00','BR.GOV.BCB.PIX')+pixF('01','e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac'))+pixF('52','0000')+pixF('53','986')+pixF('54',(Math.round(v*100)/100).toFixed(2))+pixF('58','BR')+pixF('59','Jeimes Andrei Barbosa dos')+pixF('60','SAO PAULO')+pixF('62',pixF('05',tx||'***'))+'6304';return p+pixCrc(p)}
+function pixFor(v){var c=Math.round(num(v)*100);if(c===1500)return PIX;if(c===3000)return PIX30;return c>0?pixMake(c/100):PIX}
 function first(c){return (c.name||'').trim().split(' ')[0]}
 function waNum(c){var dg=(c.phone||'').replace(/\D/g,'');if(dg.length>=10&&dg.length<=11)dg='55'+dg;return dg.length<12?'':dg}
 function waMsg(c){
