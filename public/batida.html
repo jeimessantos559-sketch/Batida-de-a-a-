@@ -95,9 +95,8 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <h1>🍇 Batida de Açaí com Maracujá</h1>
 <p class="sub" id="where">Salvo neste aparelho</p>
 <div class="card" aria-live="polite"><h2>Resumo das vendas</h2>
-<div class="per" id="per"><button data-p="d2" aria-pressed="false">Anteontem</button><button data-p="d1" aria-pressed="false">Ontem</button><button data-p="day" aria-pressed="false">Hoje</button></div>
-<div class="per" id="per2"><button data-p="pick" aria-pressed="false" id="perpk">Outro dia</button><button data-p="month" aria-pressed="false">Este mês</button><button data-p="all" aria-pressed="true">Tudo</button></div>
-<div id="perdw" hidden style="margin:-4px 0 10px"><label for="perd" class="sub" style="display:block;margin:0 0 4px">Escolha o dia</label><input type="date" id="perd" style="width:100%"></div>
+<div class="per" id="per"><button data-p="pick" aria-pressed="false" id="perpk">Por data</button><button data-p="month" aria-pressed="false">Este mês</button><button data-p="all" aria-pressed="true">Tudo</button></div>
+<div id="perdw" hidden style="margin:-2px 0 10px"><label for="perd" class="sub" style="display:block;margin:0 0 4px">Data</label><div style="display:flex;gap:6px;align-items:stretch"><button type="button" class="btn ghost" id="perprev" aria-label="Dia anterior" style="min-width:44px">‹</button><input type="date" id="perd" style="flex:1;min-width:0"><button type="button" class="btn ghost" id="pernext" aria-label="Próximo dia" style="min-width:44px">›</button></div></div>
 <div class="hero">
 <div class="h1"><small id="svl">Total vendido</small><b id="sv0">R$ 0,00</b><span id="sv1">0 garrafas</span></div>
 </div>
@@ -432,13 +431,15 @@ var allV=sales.reduce(function(t,s){return t+val(s)},0)+archives.reduce(function
 var gx=expenses.reduce(function(t,e){return t+num(e.v)},0),lrl=allV-gx;
 $('#sg1').textContent=brl(gx);$('#sg2').textContent=(lrl<0?'-':'')+brl(Math.abs(lrl));$('#sg2').className=lrl<0?'bad':'good';$('#sg3').textContent='vendido '+brl(allV)+(allP?' (com '+brl(allP)+' a receber)':'');
 $('#sv0').textContent=brl(tot);var fks=Object.keys(byF);$('#sv1').textContent=g+(g===1?' garrafa':' garrafas')+(fks.length>1?' · '+fks.map(function(k){return byF[k]+' '+k}).join(', '):'');
-var ps=perStart();$('#svl').textContent=per==='all'?'Total vendido':per==='month'?'Vendido este mês':per==='day'?'Vendido hoje':per==='d1'?'Vendido ontem ('+fd(ps)+')':per==='d2'?'Vendido anteontem ('+fd(ps)+')':'Vendido em '+fd(ps);
-$('#perdw').hidden=per!=='pick';$('#perpk').textContent=per==='pick'?fd(ps):'Outro dia';
+var ps=perStart();$('#svl').textContent=per==='all'?'Total vendido':per==='month'?'Vendido este mês':ps===sod(Date.now())?'Vendido hoje ('+fd(ps)+')':'Vendido em '+fd(ps)+' ('+new Date(ps).toLocaleDateString('pt-BR',{weekday:'long'})+')';
+$('#perdw').hidden=per!=='pick';if(per==='pick'){$('#perd').value=iso(ps);$('#perd').max=iso(Date.now());$('#pernext').disabled=ps>=sod(Date.now())}
 $('#sv2').textContent=brl(pix);$('#sv3').textContent=brl(card);$('#sv4').textContent=brl(pd);
 $('#sv5').textContent=np?np+(np===1?' garrafa':' garrafas'):'Nada pendente';
 document.querySelectorAll('#per button,#per2 button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-p')===per)});
 renderCob();renderStock()}
-document.querySelectorAll('#per button,#per2 button').forEach(function(b){b.onclick=function(){per=b.getAttribute('data-p');if(per==='pick'){var pi=$('#perd');if(!perDay){perDay=sod(Date.now())}pi.value=iso(perDay);pi.max=iso(Date.now())}renderSummary();if(per==='pick'){try{$('#perd').showPicker()}catch(e){}}}});
+document.querySelectorAll('#per button,#per2 button').forEach(function(b){b.onclick=function(){per=b.getAttribute('data-p');if(per==='pick'&&!perDay)perDay=sod(Date.now());renderSummary()}});
+function perStep(n){var d=new Date(perStart());d.setDate(d.getDate()+n);if(d.getTime()>sod(Date.now()))return;perDay=d.getTime();renderSummary()}
+$('#perprev').onclick=function(){perStep(-1)};$('#pernext').onclick=function(){perStep(1)};
 $('#perd').onchange=function(){var v=this.value;if(!v)return;var a=v.split('-');perDay=new Date(+a[0],+a[1]-1,+a[2]).getTime();renderSummary()};
 var PIX='00020126580014BR.GOV.BCB.PIX0136e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac520400005303986540515.005802BR5925Jeimes Andrei Barbosa dos6009SAO PAULO62140510AzUOIc6jSw63047121';
 function first(c){return (c.name||'').trim().split(' ')[0]}
