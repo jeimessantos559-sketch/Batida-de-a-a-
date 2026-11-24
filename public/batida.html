@@ -95,9 +95,11 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <h1>🍇 Batida de Açaí com Maracujá</h1>
 <p class="sub" id="where">Salvo neste aparelho</p>
 <div class="card" aria-live="polite"><h2>Resumo das vendas</h2>
-<div class="per" id="per"><button data-p="day" aria-pressed="false">Hoje</button><button data-p="month" aria-pressed="false">Este mês</button><button data-p="all" aria-pressed="true">Tudo</button></div>
+<div class="per" id="per"><button data-p="d2" aria-pressed="false">Anteontem</button><button data-p="d1" aria-pressed="false">Ontem</button><button data-p="day" aria-pressed="false">Hoje</button></div>
+<div class="per" id="per2"><button data-p="pick" aria-pressed="false" id="perpk">Outro dia</button><button data-p="month" aria-pressed="false">Este mês</button><button data-p="all" aria-pressed="true">Tudo</button></div>
+<div id="perdw" hidden style="margin:-4px 0 10px"><label for="perd" class="sub" style="display:block;margin:0 0 4px">Escolha o dia</label><input type="date" id="perd" style="width:100%"></div>
 <div class="hero">
-<div class="h1"><small>Total vendido</small><b id="sv0">R$ 0,00</b><span id="sv1">0 garrafas</span></div>
+<div class="h1"><small id="svl">Total vendido</small><b id="sv0">R$ 0,00</b><span id="sv1">0 garrafas</span></div>
 </div>
 <div class="sum" style="grid-template-columns:1fr 1fr;margin-bottom:8px">
 <div><small>Gastos (total)</small><b id="sg1" class="bad">R$ 0,00</b></div>
@@ -373,7 +375,8 @@ function nextDue(day){var t=new Date();t.setHours(0,0,0,0);var d=new Date(t.getF
 function fd(ms){return new Date(ms).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}
 function pend(s){return !s.paid}
 function val(s){return num(s.total)||num(s.qty)*num(P.pix)}
-var per='all';
+var per='all',perDay=0;
+function perStart(){var d=new Date();d.setHours(0,0,0,0);if(per==='d1')d.setDate(d.getDate()-1);else if(per==='d2')d.setDate(d.getDate()-2);else if(per==='pick')return perDay||d.getTime();return d.getTime()}
 function pct(i){var u=parseFloat(String(i.u==null?'':i.u).replace(',','.'));return isFinite(u)?Math.max(0,u):100}
 function ingCost(i){return num(i.v)*pct(i)/100}
 function recipeCost(){return P.ing.reduce(function(t,i){return t+ingCost(i)},0)}
@@ -385,7 +388,7 @@ P.ing=[{n:'Açaí (1,6 kg)',v:26,u:100},{n:'Leite condensado',v:6.9,u:100},{n:'C
 P.yield=9;P.bpack=10.9;P.bunits=10;P.bottle=0;P.ver=4;return true}
 if(migrateP())setTimeout(saveP,0);
 ensureFl();
-function inPer(s){var t=s.createdAt||0,d=new Date();if(per==='day')return sod(t)===sod(Date.now());if(per==='month'){var x=new Date(t);return x.getMonth()===d.getMonth()&&x.getFullYear()===d.getFullYear()}return true}
+function inPer(s){var t=s.createdAt||0,d=new Date();if(per==='day'||per==='d1'||per==='d2'||per==='pick')return sod(t)===perStart();if(per==='month'){var x=new Date(t);return x.getMonth()===d.getMonth()&&x.getFullYear()===d.getFullYear()}return true}
 function profit(s){var v=val(s),m=s.paid?(s.paidMethod||s.method):s.method;if(m==='cartao')v*=1-num(P.fee)/100;return v-unitCost()*num(s.qty)}
 function saveNow(){syncFl();clearTimeout(timer);if(col&&gotRemote){col.doc('pricing').set(P).catch(function(){})}lsSave()}
 function ensureFl(){if(!Array.isArray(P.flavors)||!P.flavors.length){P.flavors=[{id:'f1',name:'Açaí com Maracujá',ing:P.ing||[],yield:P.yield||1}];P.cf=0}
@@ -410,7 +413,7 @@ function renderStock(){if(!$('#st1'))return;var pr=prodToday(),sd=soldToday(),dt
 $('#sth').textContent='Produção de hoje ('+fd(Date.now())+')';
 $('#st1').textContent=String(pr);$('#st2').textContent=String(sd);$('#st3').textContent=String(Math.max(0,left));
 var fr=left-dt;$('#st3').className=fr<0?'bad':left>0?'good':'';
-$('#stw').textContent=dt?(fr>=0?dt+(dt===1?' garrafa reservada':' garrafas reservadas')+' para pedidos de hoje ainda não entregues. Livres para vender: '+fr+'.':'Pedidos de hoje precisam de '+dt+(dt===1?' garrafa':' garrafas')+': faltam '+(-fr)+'.'):pr===0?'Quando fizer a produção do dia, digite a quantidade e toque em "+ Produzi".':left<=0?'Produção de hoje esgotada.':'';
+$('#stw').textContent=dt?(fr>=0?dt+(dt===1?' garrafa reservada':' garrafas reservadas')+' para pedidos de hoje ainda não entregues. Livres para vender: '+fr+'.':'Pedidos de hoje precisam de '+dt+(dt===1?' garrafa':' garrafas')+': faltam '+(dt-Math.max(0,left))+'.'):pr===0?'Quando fizer a produção do dia, digite a quantidade e toque em "+ Produzi".':left<=0?'Produção de hoje esgotada.':'';
 var sf=$('#stf');sf.textContent='';if(fls().length>1||pr>0){fls().forEach(function(f){var p1=prodToday(f.id),s1=soldToday(f.id),d1=dueToday(f.id);if(!p1&&!s1&&!d1&&fls().length>1&&pr>0)return;var rw=el('div','');rw.appendChild(el('b','',f.name));var lf=p1-s1-d1;rw.appendChild(el('span',lf<0?'bad':'',p1+' feitas · '+s1+' vendidas'+(d1?' · '+d1+' reserv.':'')+' · sobram '+Math.max(0,p1-s1)));sf.appendChild(rw)})}
 if(!stFl||!fls().some(function(f){return f.id===stFl}))stFl=(fls()[0]||{}).id;segFl($('#stseg'),stFl,function(id){stFl=id;renderStock()});
 var tm=sod(Date.now())+864e5,tq=0,later=0,tqf={};orders.forEach(function(o){if(o.status==='done')return;var d=sod(o.delivery||0);if(d>=tm&&d<tm+864e5){tq+=num(o.qty);var nf=flName(flOf(o));tqf[nf]=(tqf[nf]||0)+num(o.qty)}else if(d>=tm+864e5)later+=num(o.qty)});
@@ -418,22 +421,25 @@ $('#stn').textContent=tq?'Amanhã ('+fd(tm)+'): '+tq+(tq===1?' garrafa':' garraf
 var stFl=null;
 function setProd(v,fid){if(sod(P.prodDay||0)!==sod(Date.now())){P.prodBy={}}P.prodDay=sod(Date.now());P.prodBy=Object.assign({},P.prodBy);P.prodBy[fid||stFl||(fls()[0]||{}).id]=Math.max(0,Math.round(v));P.prod=prodToday();saveNow();renderStock();showTotal();oTotal()}
 function renderSummary(){
-var g=0,tot=0,lu=0,lr=0,pix=0,card=0,pd=0,np=0;
+var g=0,tot=0,lu=0,lr=0,pix=0,card=0,pd=0,np=0,byF={};
 sales.forEach(function(s){
 if(pend(s)){pd+=val(s);np+=num(s.qty)}
 if(!inPer(s))return;
-g+=num(s.qty);tot+=val(s);var pf=profit(s);lu+=pf;
+g+=num(s.qty);tot+=val(s);var fk=flName(s.fl||'f1');byF[fk]=(byF[fk]||0)+num(s.qty);var pf=profit(s);lu+=pf;
 if(!pend(s)){lr+=pf;var m=s.paidMethod||s.method;if(m==='cartao')card+=val(s);else pix+=val(s)}});
-archives.forEach(function(a){(a.rows||[]).forEach(function(r){if(!inPer({createdAt:r.d}))return;g+=num(r.q);tot+=num(r.v);if(r.m==='cartao')card+=num(r.v);else pix+=num(r.v)})});
+archives.forEach(function(a){(a.rows||[]).forEach(function(r){if(!inPer({createdAt:r.d}))return;g+=num(r.q);var fk2=flName(r.fl||'f1');byF[fk2]=(byF[fk2]||0)+num(r.q);tot+=num(r.v);if(r.m==='cartao')card+=num(r.v);else pix+=num(r.v)})});
 var allV=sales.reduce(function(t,s){return t+val(s)},0)+archives.reduce(function(t,a){return t+(a.rows||[]).reduce(function(u,r){return u+num(r.v)},0)},0),allP=sales.filter(pend).reduce(function(t,s){return t+val(s)},0);
 var gx=expenses.reduce(function(t,e){return t+num(e.v)},0),lrl=allV-gx;
 $('#sg1').textContent=brl(gx);$('#sg2').textContent=(lrl<0?'-':'')+brl(Math.abs(lrl));$('#sg2').className=lrl<0?'bad':'good';$('#sg3').textContent='vendido '+brl(allV)+(allP?' (com '+brl(allP)+' a receber)':'');
-$('#sv0').textContent=brl(tot);$('#sv1').textContent=g+(g===1?' garrafa':' garrafas');
+$('#sv0').textContent=brl(tot);var fks=Object.keys(byF);$('#sv1').textContent=g+(g===1?' garrafa':' garrafas')+(fks.length>1?' · '+fks.map(function(k){return byF[k]+' '+k}).join(', '):'');
+var ps=perStart();$('#svl').textContent=per==='all'?'Total vendido':per==='month'?'Vendido este mês':per==='day'?'Vendido hoje':per==='d1'?'Vendido ontem ('+fd(ps)+')':per==='d2'?'Vendido anteontem ('+fd(ps)+')':'Vendido em '+fd(ps);
+$('#perdw').hidden=per!=='pick';$('#perpk').textContent=per==='pick'?fd(ps):'Outro dia';
 $('#sv2').textContent=brl(pix);$('#sv3').textContent=brl(card);$('#sv4').textContent=brl(pd);
 $('#sv5').textContent=np?np+(np===1?' garrafa':' garrafas'):'Nada pendente';
-document.querySelectorAll('#per button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-p')===per)});
+document.querySelectorAll('#per button,#per2 button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-p')===per)});
 renderCob();renderStock()}
-document.querySelectorAll('#per button').forEach(function(b){b.onclick=function(){per=b.getAttribute('data-p');renderSummary()}});
+document.querySelectorAll('#per button,#per2 button').forEach(function(b){b.onclick=function(){per=b.getAttribute('data-p');if(per==='pick'){var pi=$('#perd');if(!perDay){perDay=sod(Date.now())}pi.value=iso(perDay);pi.max=iso(Date.now())}renderSummary();if(per==='pick'){try{$('#perd').showPicker()}catch(e){}}}});
+$('#perd').onchange=function(){var v=this.value;if(!v)return;var a=v.split('-');perDay=new Date(+a[0],+a[1]-1,+a[2]).getTime();renderSummary()};
 var PIX='00020126580014BR.GOV.BCB.PIX0136e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac520400005303986540515.005802BR5925Jeimes Andrei Barbosa dos6009SAO PAULO62140510AzUOIc6jSw63047121';
 function first(c){return (c.name||'').trim().split(' ')[0]}
 function waNum(c){var dg=(c.phone||'').replace(/\D/g,'');if(dg.length>=10&&dg.length<=11)dg='55'+dg;return dg.length<12?'':dg}
