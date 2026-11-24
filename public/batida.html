@@ -442,20 +442,22 @@ function perStep(n){var d=new Date(perStart());d.setDate(d.getDate()+n);if(d.get
 $('#perprev').onclick=function(){perStep(-1)};$('#pernext').onclick=function(){perStep(1)};
 $('#perd').onchange=function(){var v=this.value;if(!v)return;var a=v.split('-');perDay=new Date(+a[0],+a[1]-1,+a[2]).getTime();renderSummary()};
 var PIX='00020126580014BR.GOV.BCB.PIX0136e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac520400005303986540515.005802BR5925Jeimes Andrei Barbosa dos6009SAO PAULO62140510AzUOIc6jSw63047121';
+var PIX30='00020126580014BR.GOV.BCB.PIX0136e68fd6d7-5b1d-48dc-8529-7dbc648ee4ac520400005303986540530.005802BR5925Jeimes Andrei Barbosa dos6009SAO PAULO62140510fh46Oqkypr6304CE38';
+function pixFor(v){return Math.round(num(v)*100)===3000?PIX30:PIX}
 function first(c){return (c.name||'').trim().split(' ')[0]}
 function waNum(c){var dg=(c.phone||'').replace(/\D/g,'');if(dg.length>=10&&dg.length<=11)dg='55'+dg;return dg.length<12?'':dg}
 function waMsg(c){
 var nm=first(c),ow=owed(cSales(c));
 var t='Olá'+(nm?', '+nm:'')+'! Muito obrigado pela preferência! Sua batida de açaí com maracujá é feita com muito carinho.';
 if(ow>0)t+='\n\nValor a pagar: '+brl(ow)+' (Pix).';
-t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX;
+t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(ow);
 return t}
 function cobMsg(c,list){
 var nm=first(c),tot=list.reduce(function(t,s){return t+val(s)},0),today=sod(Date.now());
 var late=list.some(function(s){return sod(s.due)<today});
 var t='Olá'+(nm?', '+nm:'')+'! '+(late?'Lembrete: o pagamento da sua batida de açaí, combinado para '+fd(list[0].due)+', está em aberto.':'Lembrete: hoje é o dia do pagamento da sua batida de açaí.');
 t+='\n\nValor a pagar: '+brl(tot)+' (Pix).';
-t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX;
+t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(tot);
 return t}
 function renderNext(today){var box=$('#cobnl');if(!box)return;box.textContent='';var lim=today+8*864e5,items=[];
 sales.forEach(function(s){if(pend(s)&&s.method==='fiado'&&s.due&&sod(s.due)>today&&sod(s.due)<lim){var c=clients.filter(function(x){return x.id===s.clientId})[0];items.push({n:c?c.name:'Cliente',d:s.due,v:val(s)})}});
@@ -541,7 +543,7 @@ function saleMsg(name,flv,value,method){var nm=(name||'').trim().split(' ')[0];
 var t='Olá'+(nm?', '+nm:'')+'! Muito obrigado pela preferência! Sua batida de '+String(flv||'açaí com maracujá').toLowerCase()+' é feita com muito carinho.';
 if(method==='cartao')return t+'\n\nPagamento de '+brl(value)+' no cartão. Até a próxima!';
 t+='\n\nValor a pagar: '+brl(value)+' (Pix).';
-return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX}
+return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(value)}
 try{$('#wauto').checked=localStorage.getItem('batida-wauto')!=='0'}catch(e){$('#wauto').checked=true}
 $('#wauto').onchange=function(){try{localStorage.setItem('batida-wauto',this.checked?'1':'0')}catch(e){}};
 $('#wax').onclick=function(){$('#wabox').hidden=true};
@@ -649,13 +651,13 @@ if(list.every(function(x){return x.paid}))return t+'\n\nPagamento de '+brl(tot)+
 if(list.every(function(x){return x.method==='cartao'}))return t+'\n\nValor: '+brl(tot)+' no cartão. Muito obrigado pela preferência!';
 var ap=list.filter(function(x){return !x.paid&&x.method!=='cartao'}).reduce(function(t2,x){return t2+vOf(x)},0),f=list.filter(function(x){return x.method==='fiado'&&x.due})[0];
 t+='\n\nValor: '+brl(ap)+(f?' (pagamento dia '+fd(f.due)+')':'')+'.';
-return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX}
+return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(ap)}
 function oMsg(o){var nm=(o.name||'').trim().split(' ')[0],v=num(o.qty)*(o.method==='cartao'?num(P.card):num(P.pix));
 var t='Olá'+(nm?', '+nm:'')+'! Seu pedido de '+o.qty+(+o.qty===1?' batida':' batidas')+' de '+flName(flOf(o)).toLowerCase()+' está confirmado para '+fd(o.delivery)+'.';
 if(o.paid)return t+'\n\nPagamento de '+brl(v)+' já recebido. Muito obrigado pela preferência!';
 if(o.method==='cartao')return t+'\n\nValor: '+brl(v)+' no cartão. Muito obrigado pela preferência!';
 t+='\n\nValor: '+brl(v)+(o.method==='fiado'?' (pagamento dia '+fd(o.due)+')':'')+'.';
-return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+PIX}
+return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(v)}
 function freeReady(o){if(o.status!=='ready')return 0;var t=sod(Date.now());if(o.readyAt&&sod(o.readyAt)>=t)return 0;
 var q=Math.max(1,Math.round(num(o.qty))||1),fid=flOf(o);setProd(prodToday(fid)+q,fid);return q}
 function toastO(q){var t=$('#otv');if(t){t.textContent='✔ '+q+(q===1?' garrafa separada voltou':' garrafas separadas voltaram')+' para o estoque de hoje.';setTimeout(oTotal,3500)}}
