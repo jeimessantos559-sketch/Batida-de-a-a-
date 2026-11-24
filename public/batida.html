@@ -645,11 +645,12 @@ var m=document.createElement('select');[['pix','Pix'],['cartao','Cartão'],['fia
 var d=document.createElement('input');d.type='date';d.value=iso(o.due||nextDue(5));var dl=fld('Data do pagamento',d);
 var sync=function(){var on=m.value==='fiado';d.hidden=!on;dl.previousSibling.hidden=!on};m.onchange=sync;sync();
 var fsel=document.createElement('select');fls().forEach(function(f){var op=document.createElement('option');op.value=f.id;op.textContent=f.name;if(f.id===flOf(o))op.selected=true;fsel.appendChild(op)});fld('Sabor',fsel);
+var ssel=document.createElement('select');[['todo','A fazer'],['ready','Pronto']].forEach(function(x){var op=document.createElement('option');op.value=x[0];op.textContent=x[1];if((o.status==='ready'?'ready':'todo')===x[0])op.selected=true;ssel.appendChild(op)});if(o.status!=='done')fld('Situação do pedido',ssel);
 var nt=fld('Observações',inp(o.note,'Observações'));
 var pl=el('label','ck');pl.style.cssText='display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--ink)';var pc=document.createElement('input');pc.type='checkbox';pc.checked=!!o.paid;pc.style.cssText='width:22px;height:22px';pl.appendChild(pc);pl.appendChild(document.createTextNode('Cliente já pagou'));w.appendChild(pl);
 var a=el('div','acts');a.style.marginTop='12px';
 var sv=el('button','btn small','Salvar correções');sv.onclick=function(){
-var mm=m.value,pd=pc.checked;if(pd&&mm==='fiado')mm='pix';updOrder(o,{fl:fsel.value,name:n.value.trim()||o.name,phone:ph.value.trim(),qty:Math.max(1,Math.round(num(q.value))||1),delivery:fromIso(dt.value),method:mm,due:mm==='fiado'&&!pd?fromIso(d.value):null,note:nt.value.trim(),paid:pd,paidAt:pd?(o.paidAt||Date.now()):null});oEdit=null;renderOrders()};
+var mm=m.value,pd=pc.checked;if(pd&&mm==='fiado')mm='pix';updOrder(o,Object.assign(o.status!=='done'?{status:ssel.value}:{},{fl:fsel.value,name:n.value.trim()||o.name,phone:ph.value.trim(),qty:Math.max(1,Math.round(num(q.value))||1),delivery:fromIso(dt.value),method:mm,due:mm==='fiado'&&!pd?fromIso(d.value):null,note:nt.value.trim(),paid:pd,paidAt:pd?(o.paidAt||Date.now()):null}));oEdit=null;renderOrders()};
 var cc=el('button','btn ghost small','Cancelar');cc.onclick=function(){oEdit=null;renderOrders()};
 a.appendChild(sv);a.appendChild(cc);w.appendChild(a);return w}
 function renderOrders(){
@@ -683,6 +684,7 @@ h.appendChild(el('span','badge '+st[0],st[1]));r.appendChild(h);
 var a=el('div','acts');a.style.marginTop='8px';
 if(o.status!=='done'&&!o.paid){var bp=el('button','btn small ghost','Já pagou');bp.onclick=function(){updOrder(o,{paid:true,paidAt:Date.now(),method:o.method==='fiado'?'pix':o.method,due:null})};a.appendChild(bp)}
 if(o.status==='todo'){var b1=el('button','btn small','Marcar pronto');b1.onclick=function(){updOrder(o,{status:'ready'})};a.appendChild(b1)}
+if(o.status==='ready'){var bu=el('button','btn ghost small','Voltar para a fazer');bu.onclick=function(){updOrder(o,{status:'todo'})};a.appendChild(bu)}
 if(o.status!=='done'){var b2=el('button','btn small','Entregue');b2.onclick=function(){deliver(o,b2)};a.appendChild(b2)}
 var w=el('a','btn small ghost','WhatsApp');var dg=waNum(o);w.href='https://wa.me/'+dg+'?text='+encodeURIComponent(oMsg(o));w.target='_blank';w.rel='noopener';a.appendChild(w);
 var ce=el('button','btn small ghost',oEdit===o.id?'Fechar':'Corrigir');ce.onclick=function(){oEdit=oEdit===o.id?null:o.id;renderOrders()};a.appendChild(ce);
