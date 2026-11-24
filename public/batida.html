@@ -200,6 +200,7 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 </div>
 <div class="card">
 <h2 id="och">Pedidos</h2>
+<div id="oprod" class="calcnote" hidden style="margin:0 0 12px"></div>
 <div class="chips" id="ochips"><button data-f="todo" aria-pressed="true">A fazer</button><button data-f="done" aria-pressed="false">Entregues</button><button data-f="all" aria-pressed="false">Todos</button></div>
 <div class="chips" id="odates" aria-label="Filtrar por data de entrega"></div>
 <div id="olist"></div>
@@ -694,6 +695,14 @@ var pq=todo.filter(function(o){return o.paid}).reduce(function(t,o){return t+num
 $('#och').textContent='Pedidos'+(gq?' · '+gq+(gq===1?' garrafa a fazer':' garrafas a fazer'):'')+(pq?' · '+brl(pq)+' já pago':'');
 document.querySelectorAll('#ochips button').forEach(function(b){var v=b.getAttribute('data-f');b.setAttribute('aria-pressed',v===ofl);b.textContent=v==='todo'?'A fazer ('+todo.length+')':v==='done'?'Entregues ('+done.length+')':'Todos ('+orders.length+')'});
 var items=(ofl==='todo'?todo:ofl==='done'?done:orders).slice().sort(function(a,b){return ofl==='done'?(b.deliveredAt||0)-(a.deliveredAt||0):(a.delivery||0)-(b.delivery||0)});
+(function(){var pb=$('#oprod');if(!pb)return;pb.textContent='';var pm={},rd=0;
+todo.forEach(function(o){if(o.status==='ready'){rd+=num(o.qty);return}var d=sod(o.delivery||0);if(d<today)d=today-1;var e=pm[d]||(pm[d]={q:0,f:{}});var n=flName(flOf(o));e.q+=num(o.qty);e.f[n]=(e.f[n]||0)+num(o.qty)});
+var ks=Object.keys(pm).map(Number).sort(function(a,b){return a-b});pb.hidden=!ks.length&&!rd;if(pb.hidden)return;
+pb.appendChild(el('b','','Para produzir'));
+ks.forEach(function(d){var e=pm[d],lab=d<today?'Atrasados':d===today?'Hoje ('+fd(d)+')':d===today+864e5?'Amanhã ('+fd(d)+')':fd(d)+' ('+new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+')';
+var r=el('div','');r.style.cssText='padding:8px 0;border-top:1px solid var(--line)';var a=el('div','');a.style.cssText='display:flex;justify-content:space-between;gap:8px';a.appendChild(el('span','',lab));a.appendChild(el('b','',e.q+(e.q===1?' garrafa':' garrafas')));r.appendChild(a);
+var fl2=el('div','sub');fl2.style.margin='2px 0 0';r.appendChild(fl2);fl2.textContent=(Object.keys(e.f).sort(function(x,y){return e.f[y]-e.f[x]}).map(function(k){return e.f[k]+' '+k}).join(' · '));pb.appendChild(r)});
+if(rd)pb.appendChild(el('div','sub',rd+(rd===1?' garrafa já pronta':' garrafas já prontas')+', só falta entregar.'))})();
 var dbox=$('#odates');dbox.textContent='';var showD=ofl!=='done';dbox.hidden=!showD;
 function dname(d){return d<today?'Atrasados':d===today?'Hoje '+fd(d):d===today+864e5?'Amanhã '+fd(d):fd(d)}
 if(showD){var dm={};items.forEach(function(o){var d=sod(o.delivery||0);if(d<today)d=today-1;dm[d]=(dm[d]||0)+num(o.qty)});
