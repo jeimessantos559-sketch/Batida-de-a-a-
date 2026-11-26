@@ -61,7 +61,7 @@ export function makeBatidaDb(sb: SupabaseClient) {
     }
     if (i < 0) return list;
     const c = list.slice();
-    c[i] = { id: op.id, data: { ...c[i].data, ...op.patch } };
+    c[i] = { id: op.id, data: { ...c[i]!.data, ...op.patch } };
     return c;
   }
 
@@ -96,7 +96,7 @@ export function makeBatidaDb(sb: SupabaseClient) {
     try {
       while (outbox.length) {
         try {
-          await sendOp(outbox[0]);
+          await sendOp(outbox[0]!);
           online = true;
         } catch (e) {
           if (isNetErr(e)) {
