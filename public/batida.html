@@ -491,10 +491,16 @@ t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'
 return t}
 function cobMsg(c,list){
 var nm=first(c),tot=list.reduce(function(t,s){return t+val(s)},0),today=sod(Date.now());
-var late=list.some(function(s){return sod(s.due)<today});
-var t='Olá'+(nm?', '+nm:'')+'! '+(late?'Lembrete: o pagamento da sua batida de açaí, combinado para '+fd(list[0].due)+', está em aberto.':'Lembrete: hoje é o dia do pagamento da sua batida de açaí.');
-t+='\n\nValor a pagar: '+brl(tot)+' (Pix).';
-t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(tot);
+var L=list.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
+var dues=L.map(function(s){return sod(s.due||today)}),dmin=Math.min.apply(null,dues),dmax=Math.max.apply(null,dues);
+var t='Olá'+(nm?', '+nm:'')+'! Tudo bem?\n\n';
+t+=dmin<today?'Passando para lembrar que o pagamento combinado para '+fd(dmin)+' ainda está em aberto:':dmin===today?'Passando para lembrar que hoje é o dia do pagamento combinado:':'Passando para lembrar do pagamento combinado para '+fd(dmin)+':';
+L.forEach(function(s){var q=num(s.qty);t+='\n- '+fd(s.createdAt||Date.now())+' - '+q+(q===1?' garrafa ':' garrafas ')+flName(flOf(s))+' - '+brl(val(s))});
+t+='\n\nTotal: '+brl(tot);
+t+='\nVencimento: '+(dmin===dmax?(dmin===today?'hoje ('+fd(dmin)+')':fd(dmin)):fd(dmin)+' a '+fd(dmax));
+t+='\n\nPara pagar, é só copiar o código Pix abaixo e colar no app do seu banco, na opção Pix Copia e Cola. Se já fez o pagamento, por favor desconsidere esta mensagem e me avise para eu dar baixa.';
+t+='\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
+t+='\n\nPix Copia e Cola:\n'+pixFor(tot);
 return t}
 function renderNext(today){var box=$('#cobnl');if(!box)return;box.textContent='';var lim=today+8*864e5,items=[];
 sales.forEach(function(s){if(pend(s)&&s.method==='fiado'&&s.due&&sod(s.due)>today&&sod(s.due)<lim){var c=clients.filter(function(x){return x.id===s.clientId})[0];items.push({n:c?c.name:'Cliente',d:s.due,v:val(s)})}});
