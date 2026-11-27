@@ -54,7 +54,7 @@ a.btn{text-decoration:none;display:inline-block}
 .er .dt{grid-column:1/-1;font-size:13px;color:var(--mute);display:flex;justify-content:space-between;align-items:center;gap:8px}
 .er label.ck{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-size:14px}.er label.ck input{width:22px;height:22px}
 .dh{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 0;padding:8px 12px;border-radius:10px;background:var(--brand);color:var(--brand-ink);font-weight:800;font-size:15px}.dh span{font-weight:600;font-size:13px}
-#odates{overflow-x:auto;flex-wrap:nowrap}#odates button{flex:none;padding:8px 14px}
+#odates{overflow-x:auto;flex-wrap:nowrap}#odates button,#oflav button{flex:none;padding:8px 14px}#oflav{flex-wrap:wrap;margin-top:-4px}
 .fl{display:flex;flex-wrap:wrap;gap:8px}.fl button{padding:10px 14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;min-height:44px}.fl button[aria-checked="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 .stf{margin-top:10px;font-size:14px}.stf div{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.stf b{font-weight:700}
 .flt{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--line);color:var(--ink);margin-left:6px;vertical-align:middle}
@@ -229,6 +229,8 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div id="oprod" class="calcnote" hidden style="margin:0 0 12px"></div>
 <div class="chips" id="ochips"><button data-f="todo" aria-pressed="true">A fazer</button><button data-f="done" aria-pressed="false">Entregues</button><button data-f="all" aria-pressed="false">Todos</button></div>
 <div class="chips" id="odates" aria-label="Filtrar por data de entrega"></div>
+<div class="chips" id="oflav" aria-label="Filtrar por sabor"></div>
+<div id="ofsum" class="calcnote" hidden style="margin:4px 0 12px"></div>
 <div id="olist"></div>
 </div>
 </section>
@@ -643,7 +645,7 @@ line('#r5',ucd*(1-f)-cost,ucd);tot('#r6',y,upx-cost);tot('#r7',y,ucd*(1-f)-cost)
 
 
 // ===== Pedidos =====
-var oDate=null,oEdit=null,oq=0,opm='pix',odd=nextDue(5)<nextDue(20)?5:20,ofl='todo',obusy=false;
+var oNote=null,oDate=null,oFlF=null,oEdit=null,oq=0,opm='pix',odd=nextDue(5)<nextDue(20)?5:20,ofl='todo',obusy=false;
 function iso(ms){var d=new Date(ms);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fromIso(v){var a=(v||'').split('-');return a.length===3?new Date(+a[0],+a[1]-1,+a[2]).getTime():sod(Date.now())}
 $('#od').value=iso(Date.now()+864e5);
@@ -679,7 +681,8 @@ clientFor(o.name,o.phone).then(function(c){if(c)addSale(c,o.qty,o.method,o.due,o
 function saleOf(o){var s=sales.find(function(x){return x.oid===o.id});if(s)return s;
 var key=(o.name||'').trim().toLowerCase(),cids=clients.filter(function(c){return (c.name||'').trim().toLowerCase()===key}).map(function(c){return c.id});
 var t=o.deliveredAt||0,best=null,bd=6e5;sales.forEach(function(x){if(cids.indexOf(x.clientId)<0||x.oid||num(x.qty)!==num(o.qty)||(x.fl||'f1')!==flOf(o))return;var d=Math.abs((x.createdAt||0)-t);if(d<bd){bd=d;best=x}});return best}
-function undoDeliver(list){list.forEach(function(o){var s=saleOf(o);if(s)delSale(s);updOrder(o,{status:o.readyAt?'ready':'todo',deliveredAt:null})});ofl='todo';renderOrders();var t=$('#otv');if(t){t.textContent='↩ Entrega desfeita: o pedido voltou para "A fazer" e a venda foi retirada.';setTimeout(oTotal,5000)}}
+function undoDeliver(list){list.forEach(function(o){var s=saleOf(o);if(s)delSale(s);updOrder(o,{status:o.readyAt?'ready':'todo',deliveredAt:null})});ofl='todo';setONote('↩ Entrega desfeita: o pedido voltou para "A fazer" e a venda foi retirada.')}
+function setONote(t){oNote={t:t,u:Date.now()+6000};renderOrders();setTimeout(function(){if(oNote&&Date.now()>=oNote.u){oNote=null;renderOrders()}},6100)}
 function deliverAll(list,btn){if(obusy)return;obusy=true;if(btn)btn.disabled=true;var o0=list[0];
 clientFor(o0.name,o0.phone).then(function(c){var ch=Promise.resolve();list.forEach(function(o){ch=ch.then(function(){if(c)addSale(c,o.qty,o.method,o.due,o.paid?(o.paidAt||Date.now()):0,flOf(o),o.id);return updOrder(o,{status:'done',deliveredAt:Date.now()})})});return ch}).then(function(){obusy=false},function(){obusy=false})}
 function gItems(list){return list.map(function(o){return o.qty+' '+flName(flOf(o)).toLowerCase()}).join(' e ')}
@@ -724,6 +727,7 @@ var cc=el('button','btn ghost small','Cancelar');cc.onclick=function(){oEdit=nul
 a.appendChild(sv);a.appendChild(cc);w.appendChild(a);return w}
 function renderOrders(){
 renderStock();var box=$('#olist');if(!box)return;box.textContent='';var today=sod(Date.now());
+if(oNote&&Date.now()<oNote.u){var nn=el('div','calcnote',oNote.t);nn.setAttribute('role','status');nn.style.cssText='margin:0 0 10px;font-weight:700';box.appendChild(nn)}
 var todo=orders.filter(function(o){return o.status!=='done'}),done=orders.filter(function(o){return o.status==='done'});
 var gq=todo.reduce(function(t,o){return t+num(o.qty)},0);
 var pq=todo.filter(function(o){return o.paid}).reduce(function(t,o){return t+num(o.qty)*unitP(flOf(o),o.method)},0);
@@ -746,6 +750,21 @@ var ds=Object.keys(dm).map(Number).sort(function(a,b){return a-b});if(oDate!==nu
 var mk2=function(lab,val){var b=el('button','',lab);b.setAttribute('aria-pressed',oDate===val);b.onclick=function(){oDate=val;renderOrders()};dbox.appendChild(b)};
 mk2('Todas as datas',null);ds.forEach(function(d){mk2(dname(d)+' ('+dm[d]+')',d)});
 if(oDate!==null)items=items.filter(function(o){var d=sod(o.delivery||0);if(d<today)d=today-1;return d===oDate})}
+(function(){var fb=$('#oflav'),sb2=$('#ofsum');fb.textContent='';sb2.textContent='';sb2.hidden=true;var fm={};
+items.forEach(function(o){var k=flOf(o);var e=fm[k]||(fm[k]={q:0,c:{}});e.q+=num(o.qty);e.c[(o.name||'').trim().toLowerCase()]=1});
+var fk=fls().map(function(f){return f.id}).filter(function(k){return fm[k]});Object.keys(fm).forEach(function(k){if(fk.indexOf(k)<0)fk.push(k)});
+if(oFlF!==null&&!fm[oFlF])oFlF=null;fb.hidden=fk.length<2&&oFlF===null;
+var mk=function(lab,v){var b=el('button','',lab);b.setAttribute('aria-pressed',oFlF===v);b.onclick=function(){oFlF=v;renderOrders()};fb.appendChild(b)};
+mk('Todos os sabores',null);fk.forEach(function(k){var n=Object.keys(fm[k].c).length;mk(flName(k)+' · '+n+(n===1?' cliente':' clientes')+' ('+fm[k].q+')',k)});
+if(oFlF===null)return;items=items.filter(function(o){return flOf(o)===oFlF});
+var byC={},ord=[];items.forEach(function(o){var k=(o.name||'Cliente').trim();if(!byC[k]){byC[k]={q:0,st:{}};ord.push(k)}byC[k].q+=num(o.qty);byC[k].st[o.status]=1});
+var tq=items.reduce(function(t,o){return t+num(o.qty)},0),td=items.filter(function(o){return o.status==='todo'}),tdq=td.reduce(function(t,o){return t+num(o.qty)},0),rdq=items.filter(function(o){return o.status==='ready'}).reduce(function(t,o){return t+num(o.qty)},0);
+sb2.hidden=false;var hd=el('div','');hd.style.cssText='display:flex;justify-content:space-between;gap:8px';hd.appendChild(el('b','',flName(oFlF)));hd.appendChild(el('b','',tq+(tq===1?' garrafa':' garrafas')+' · '+ord.length+(ord.length===1?' cliente':' clientes')));sb2.appendChild(hd);
+sb2.appendChild(el('div','sub',ord.map(function(k){var e=byC[k];return k+' ('+e.q+')'+(e.st.done?' ✔':e.st.ready&&!e.st.todo?' ✓':'')}).join(' · ')));
+if(ofl!=='done')sb2.appendChild(el('div','sub',(tdq?tdq+(tdq===1?' a fazer':' a fazer'):'nada a fazer')+(rdq?' · '+rdq+(rdq===1?' pronta':' prontas'):'')+'   (✓ = pronto)'));
+if(td.length){var bb=el('button','btn','Marcar '+(tdq===1?'1 '+flName(oFlF):'todos os '+tdq+' de '+flName(oFlF))+' como pronto');bb.type='button';bb.style.cssText='width:100%;margin-top:10px';var arm=false;
+bb.onclick=function(){if(!arm){arm=true;bb.textContent='Toque de novo para confirmar';setTimeout(function(){arm=false;bb.textContent='Marcar '+(tdq===1?'1 '+flName(oFlF):'todos os '+tdq+' de '+flName(oFlF))+' como pronto'},3000);return}
+var now=Date.now();td.forEach(function(x){updOrder(x,{status:'ready',readyAt:now})});setONote('✓ '+tdq+(tdq===1?' garrafa':' garrafas')+' de '+flName(oFlF)+' marcada'+(tdq===1?'':'s')+' como pronta'+(tdq===1?'':'s')+'.')};sb2.appendChild(bb)}})();
 if(!items.length){box.appendChild(el('div','empty',ofl==='todo'?'Nenhum pedido a fazer.':'Nenhum pedido aqui.'));return}
 var lastD=null,groups=[],gmap={};
 items.forEach(function(o){var bucket=o.status==='done'?'d'+sod(o.deliveredAt||0):'p'+(function(){var d=sod(o.delivery||0);return d<today?today-1:d})();
