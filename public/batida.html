@@ -521,7 +521,7 @@ var ordDue=orders.filter(function(o){return o.status!=='done'&&o.method==='fiado
 var ids=Object.keys(by);$('#cob').hidden=!ids.length&&!ordDue.length;
 ordDue.forEach(function(o){var r=el('div','cl');r.appendChild(el('b','',o.name||'Cliente'));var v2=num(o.qty)*unitP(flOf(o),'pix');
 r.appendChild(el('div','meta',brl(v2)+' · pedido ainda não entregue · '+(sod(o.due)<today?'atrasado desde '+fd(o.due):'vence hoje')));
-var a=el('div','acts');var w=el('a','btn small','Cobrar no WhatsApp');w.href='https://wa.me/'+waNum(o)+'?text='+encodeURIComponent(cobMsg(o,[{due:o.due,total:v2,qty:o.qty}]));w.target='_blank';w.rel='noopener';a.appendChild(w);
+var a=el('div','acts');var w=el('a','btn small','Cobrar no WhatsApp');w.href='https://wa.me/'+waNum(o)+'?text='+encodeURIComponent(cobMsg(o,[{due:o.due,total:v2,qty:o.qty,fl:flOf(o),createdAt:o.createdAt}]));w.target='_blank';w.rel='noopener';a.appendChild(w);
 var b=el('button','btn ghost small','Recebi');b.onclick=function(){updOrder(o,{paid:true,paidAt:Date.now(),method:'pix',due:null})};a.appendChild(b);r.appendChild(a);box.appendChild(r)});
 renderNext(today);notifyDue(ids.length+ordDue.length,Object.keys(by).reduce(function(t,k){return t+by[k].reduce(function(u,s){return u+val(s)},0)},0)+ordDue.reduce(function(t,o){return t+num(o.qty)*unitP(flOf(o),'pix')},0));
 $('#cobh').textContent='🔔 Cobrar hoje ('+(ids.length+ordDue.length)+')';
