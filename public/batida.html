@@ -166,7 +166,7 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div id="swarn" class="calcnote" role="alert" hidden style="border:2px solid var(--bad);margin-top:12px"><b id="swt" class="bad" style="display:block;margin-bottom:6px"></b><span id="swm"></span><div class="acts" style="margin-top:10px"><button class="btn small" id="swok" type="button">Vender mesmo assim</button><button class="btn ghost small" id="swno" type="button">Cancelar</button></div></div>
 <label class="ck" style="display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--ink);font-size:15px"><input type="checkbox" id="wauto" style="width:24px;height:24px;flex:none"> Abrir o WhatsApp do cliente com a mensagem e o Pix ao salvar</label>
 <button class="btn full" id="add">Salvar</button>
-<div id="wabox" class="calcnote" hidden style="margin-top:12px"><span id="watx"></span><div class="acts" style="margin-top:10px"><a class="btn small" id="walk" target="_blank" rel="noopener">Enviar no WhatsApp</a><button class="btn ghost small" id="wax" type="button">Fechar</button></div></div>
+<div id="wabox" class="calcnote" hidden style="margin-top:12px"><span id="watx"></span><div class="acts" style="margin-top:10px"><a class="btn small" id="walk" target="_blank" rel="noopener">1º: enviar mensagem</a><a class="btn small" id="wapix" target="_blank" rel="noopener" hidden style="background:#2bb673;border-color:#2bb673;color:#fff">2º: enviar código Pix</a><button class="btn ghost small" id="wax" type="button">Fechar</button></div></div>
 </div>
 <div class="card">
 <h2>Planilha de vendas</h2>
@@ -384,7 +384,7 @@ r.appendChild(el('span','',info));
 var b=el('button','btn small','Recebi');b.onclick=function(){markPaid(s)};r.appendChild(b);box.appendChild(r)});
 var a=el('div','acts');a.style.marginTop='10px';
 if(st.p.length>1){var ra=el('button','btn small','Recebi tudo ('+brl(st.ow)+')');ra.onclick=function(){st.p.forEach(function(s){markPaid(s)})};a.appendChild(ra)}
-var w=el('a','btn small ghost','WhatsApp');w.href='https://wa.me/'+waNum(c)+'?text='+encodeURIComponent(waMsg(c));w.target='_blank';w.rel='noopener';a.appendChild(w);
+var w=waLink(el('a','btn small ghost','WhatsApp'),waNum(c),waMsg(c));a.appendChild(w);
 var ce=el('button','btn small ghost',editId===c.id?'Fechar correção':'Corrigir');ce.onclick=function(){editId=editId===c.id?null:c.id;renderClients()};a.appendChild(ce);
 box.appendChild(a);
 if(editId===c.id){box.appendChild(editor(c,st));list.appendChild(box);return}
@@ -483,6 +483,14 @@ function pixMake(v,tx){var p=pixF('00','01')+pixF('26',pixF('00','BR.GOV.BCB.PIX
 function pixFor(v){var c=Math.round(num(v)*100);if(c===1500)return PIX;if(c===3000)return PIX30;return c>0?pixMake(c/100):PIX}
 function first(c){return (c.name||'').trim().split(' ')[0]}
 function waNum(c){var dg=(c.phone||'').replace(/\D/g,'');if(dg.length>=10&&dg.length<=11)dg='55'+dg;return dg.length<12?'':dg}
+
+function waSplit(t){var k=t.lastIndexOf('\n\nPix Copia e Cola');if(k<0)return {m:t,code:''};var code=t.slice(t.indexOf('\n',k+2)+1).trim(),m=t.slice(0,k);
+var vv=null;var mm=/54(\d\d)/.exec(code.slice(code.indexOf('5303986')+7));if(mm){vv=num(code.substr(code.indexOf('5303986')+7+4,+mm[1]))}
+code=(vv?'Valor a pagar: '+brl(vv)+' (Pix).\n\n':'')+'Pix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+code;
+if(m.indexOf('próxima mensagem')<0)m+='\n\nO código Pix vai na próxima mensagem: é só copiar e colar no app do seu banco (Pix Copia e Cola).';return {m:m,code:code}}
+function waLink(a,num,text){var sp=waSplit(text);a.href='https://wa.me/'+(num||'')+'?text='+encodeURIComponent(sp.m);a.target='_blank';a.rel='noopener';
+if(!sp.code)return a;a.addEventListener('click',function(){if(a.__px&&a.__px.isConnected){a.__px.classList.add('pulse');return}var b=el('a','btn small','2º: enviar código Pix');b.href='https://wa.me/'+(num||'')+'?text='+encodeURIComponent(sp.code);b.target='_blank';b.rel='noopener';b.title='Manda só o código, para o cliente copiar fácil';
+b.style.cssText='background:#2bb673;border-color:#2bb673;color:#fff';a.__px=b;setTimeout(function(){a.insertAdjacentElement('afterend',b)},300)});return a}
 function waMsg(c){var nm=first(c),all=cSales(c),pl=all.filter(pend),ow=owed(all);
 var last=all.reduce(function(m,x){return Math.max(m,sod(x.createdAt||0))},0),L=all.filter(function(x){return sod(x.createdAt||0)===last});
 if(!L.length)return 'Olá'+(nm?', '+nm:'')+'! Tudo bem?\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
@@ -498,7 +506,7 @@ t+=dmin<today?'Passando para lembrar que o pagamento combinado para '+fd(dmin)+'
 L.forEach(function(s){var q=num(s.qty);t+='\n- '+fd(s.createdAt||Date.now())+' - '+q+(q===1?' garrafa ':' garrafas ')+flName(flOf(s))+' - '+brl(val(s))});
 t+='\n\nTotal: '+brl(tot);
 t+='\nVencimento: '+(dmin===dmax?(dmin===today?'hoje ('+fd(dmin)+')':fd(dmin)):fd(dmin)+' a '+fd(dmax));
-t+='\n\nPara pagar, é só copiar o código Pix abaixo e colar no app do seu banco, na opção Pix Copia e Cola. Se já fez o pagamento, por favor desconsidere esta mensagem e me avise para eu dar baixa.';
+t+='\n\nPara pagar, é só copiar o código Pix que vou mandar na próxima mensagem e colar no app do seu banco, na opção Pix Copia e Cola. Se já fez o pagamento, por favor desconsidere esta mensagem e me avise para eu dar baixa.';
 t+='\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
 t+='\n\nPix Copia e Cola:\n'+pixFor(tot);
 return t}
@@ -521,7 +529,7 @@ var ordDue=orders.filter(function(o){return o.status!=='done'&&o.method==='fiado
 var ids=Object.keys(by);$('#cob').hidden=!ids.length&&!ordDue.length;
 ordDue.forEach(function(o){var r=el('div','cl');r.appendChild(el('b','',o.name||'Cliente'));var v2=num(o.qty)*unitP(flOf(o),'pix');
 r.appendChild(el('div','meta',brl(v2)+' · pedido ainda não entregue · '+(sod(o.due)<today?'atrasado desde '+fd(o.due):'vence hoje')));
-var a=el('div','acts');var w=el('a','btn small','Cobrar no WhatsApp');w.href='https://wa.me/'+waNum(o)+'?text='+encodeURIComponent(cobMsg(o,[{due:o.due,total:v2,qty:o.qty,fl:flOf(o),createdAt:o.createdAt}]));w.target='_blank';w.rel='noopener';a.appendChild(w);
+var a=el('div','acts');var w=waLink(el('a','btn small','Cobrar no WhatsApp'),waNum(o),cobMsg(o,[{due:o.due,total:v2,qty:o.qty,fl:flOf(o),createdAt:o.createdAt}]));a.appendChild(w);
 var b=el('button','btn ghost small','Recebi');b.onclick=function(){updOrder(o,{paid:true,paidAt:Date.now(),method:'pix',due:null})};a.appendChild(b);r.appendChild(a);box.appendChild(r)});
 renderNext(today);notifyDue(ids.length+ordDue.length,Object.keys(by).reduce(function(t,k){return t+by[k].reduce(function(u,s){return u+val(s)},0)},0)+ordDue.reduce(function(t,o){return t+num(o.qty)*unitP(flOf(o),'pix')},0));
 $('#cobh').textContent='🔔 Cobrar hoje ('+(ids.length+ordDue.length)+')';
@@ -532,7 +540,7 @@ var r=el('div','cl');r.appendChild(el('b','',c.name||'Cliente'));
 var late=sod(l[0].due)<today;
 r.appendChild(el('div','meta',brl(tot)+' · '+(late?'Atrasado desde '+fd(l[0].due):'Vence hoje')));
 var a=el('div','acts');
-var w=el('a','btn small','Cobrar no WhatsApp');w.href='https://wa.me/'+waNum(c)+'?text='+encodeURIComponent(cobMsg(c,l));w.target='_blank';w.rel='noopener';a.appendChild(w);
+var w=waLink(el('a','btn small','Cobrar no WhatsApp'),waNum(c),cobMsg(c,l));a.appendChild(w);
 var b=el('button','btn ghost small','Recebi');b.onclick=function(){l.forEach(function(s){markPaid(s)})};a.appendChild(b);
 r.appendChild(a);box.appendChild(r)})}
 var METHOD={pix:'Pix',cartao:'Cartão',fiado:'Pagar depois'};
@@ -590,8 +598,8 @@ if(o.prev>0)t+='\n- Saldo anterior em aberto - '+brl(o.prev);
 var due=Math.round((tot+(o.paid?0:(o.prev||0)))*100)/100;t+='\n'+(due!==tot?'Total a pagar: ':'Total: ')+brl(due);var pix=false;
 if(o.paid)t+='\n\nPagamento recebido. Obrigado!';
 else if(o.method==='cartao')t+='\n\nPagamento no cartão.';
-else if(o.method==='fiado'){t+='\n\nPagamento combinado para '+fd(o.due)+'. Se preferir, já pode pagar pelo código Pix abaixo.';pix=true}
-else{t+='\n\nPara pagar, é só copiar o código Pix abaixo e colar no app do seu banco, na opção Pix Copia e Cola.';pix=true}
+else if(o.method==='fiado'){t+='\n\nPagamento combinado para '+fd(o.due)+'. Se preferir, já pode pagar pelo código Pix que vou mandar na próxima mensagem.';pix=true}
+else{t+='\n\nPara pagar, é só copiar o código Pix que vou mandar na próxima mensagem e colar no app do seu banco, na opção Pix Copia e Cola.';pix=true}
 t+='\n\nSe puder, me conta depois o que achou, sua opinião me ajuda muito!\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
 if(pix)t+='\n\nPix Copia e Cola:\n'+pixFor(due);return t}
 function saleMsg(name,fq,method,due,prev){var nm=(name||'').trim().split(' ')[0];
@@ -616,10 +624,10 @@ var nt=$('#co').value.trim(),ph=$('#cp').value.trim();
 if(busy)return;var key=n.toLowerCase();var ex=clients.filter(function(c){return (c.name||'').trim().toLowerCase()===key})[0]||known[key];
 var qn=nq,mm=pm,du=dueV(),fq=sfKeys().map(function(k){return [k,sfq[k]]});
 if(qn>0){var phone=ph||(ex&&ex.phone)||'';var prev=ex?owed(cSales(ex)):0;var val=fq.reduce(function(t,x){return t+x[1]*unitP(x[0],mm)},0);
-var msg=saleMsg(n,fq,mm,du,mm==='cartao'?0:prev);var dg=waNum({phone:phone});var url='https://wa.me/'+dg+'?text='+encodeURIComponent(msg);
+var msg=saleMsg(n,fq,mm,du,mm==='cartao'?0:prev);var dg=waNum({phone:phone});var sp=waSplit(msg);var url='https://wa.me/'+dg+'?text='+encodeURIComponent(sp.m);$('#wapix').hidden=!sp.code;if(sp.code)$('#wapix').href='https://wa.me/'+dg+'?text='+encodeURIComponent(sp.code);
 $('#walk').href=url;$('#watx').textContent=dg?'Mensagem com o Pix pronta para '+n+'.':'Este cliente não tem WhatsApp cadastrado. Toque abaixo para escolher o contato.';
 var opened=false;if($('#wauto').checked&&dg){try{opened=!!window.open(url,'_blank')}catch(e){}}
-$('#wabox').hidden=opened&&!!dg;if(opened)$('#watx').textContent='WhatsApp aberto para '+n+'.'}
+$('#wabox').hidden=opened&&!!dg&&!sp.code;if(opened)$('#watx').textContent='WhatsApp aberto para '+n+'.'+(sp.code?' Depois de enviar, volte aqui e toque em "2º: enviar código Pix".':'')}
 var done=function(c){if(c&&qn>0)fq.forEach(function(x){addSale(c,x[1],mm,du,0,x[0])})};
 if(ex){done(ex)}else{busy=true;$('#add').disabled=true;addClient({type:'client',name:n,phone:ph,note:nt,createdAt:Date.now()}).then(function(c){if(c){known[key]=c;setTimeout(function(){delete known[key]},10000)}done(c)}).then(function(){busy=false;$('#add').disabled=false},function(){busy=false;$('#add').disabled=false})}
 $('#cn').value='';$('#cp').value='';$('#co').value='';sfq={};renderSfQty();$('#tv').textContent='✔ Salvo!';setTimeout(showTotal,1800);$('#cn').focus()};
@@ -805,7 +813,7 @@ if(open.some(function(x){return !x.paid})){var bp=el('button','btn small ghost',
 if(open.some(function(x){return x.status==='todo'})){var b1=el('button','btn small','Marcar pronto');b1.onclick=function(){open.forEach(function(x){if(x.status==='todo')updOrder(x,{status:'ready',readyAt:Date.now()})})};a.appendChild(b1)}
 if(open.some(function(x){return x.status==='ready'})){var bu=el('button','btn ghost small','Voltar para a fazer');bu.onclick=function(){var back=0;open.forEach(function(x){if(x.status==='ready'){back+=freeReady(x);updOrder(x,{status:'todo',readyAt:null})}});if(back)toastO(back)};a.appendChild(bu)}
 if(open.length){var b2=el('button','btn small','Entregue');b2.onclick=function(){deliverAll(open,b2)};a.appendChild(b2)}
-var w=el('a','btn small ghost','WhatsApp');var dg=waNum(o);w.href='https://wa.me/'+dg+'?text='+encodeURIComponent(gMsg(L));w.target='_blank';w.rel='noopener';a.appendChild(w);
+var dg=waNum(o);var w=waLink(el('a','btn small ghost','WhatsApp'),dg,gMsg(L));a.appendChild(w);
 var ce=el('button','btn small ghost',oEdit===g.k?'Fechar':'Corrigir');ce.onclick=function(){oEdit=oEdit===g.k?null:g.k;renderOrders()};a.appendChild(ce);
 if(open.length){var x=el('button','btn ghost small',L.length>1?'Cancelar pedido inteiro':'Cancelar pedido');var ar=false;x.onclick=function(){if(Date.now()-(window.__ct||0)<700)return;if(!ar){ar=true;window.__ct=Date.now();x.textContent='Confirmar?';setTimeout(function(){ar=false;x.textContent=L.length>1?'Cancelar pedido inteiro':'Cancelar pedido'},3000);return}open.forEach(function(z){delOrder(z)})};a.appendChild(x)}
 else{var ud=el('button','btn small','Desfazer entrega');var ar4=false;ud.onclick=function(){if(Date.now()-(window.__ct||0)<700)return;if(!ar4){ar4=true;window.__ct=Date.now();ud.textContent='Confirmar?';setTimeout(function(){ar4=false;ud.textContent='Desfazer entrega'},3000);return}undoDeliver(L)};a.appendChild(ud);var u=el('button','btn ghost small','Excluir');var ar2=false;u.onclick=function(){if(Date.now()-(window.__ct||0)<700)return;if(!ar2){ar2=true;window.__ct=Date.now();u.textContent='Confirmar?';setTimeout(function(){ar2=false;u.textContent='Excluir'},3000);return}L.forEach(function(z){delOrder(z)})};a.appendChild(u)}
@@ -1029,7 +1037,7 @@ h.appendChild(el('span','badge '+(rankM==='late'?'b-late':'b-wait'),rankM==='lat
 var dd=Math.round((today-sod(e.last))/DAY);r.appendChild(el('div','meta',brl(e.v)+' no total · '+plural(e.n,'compra','compras')+' · última '+(dd===0?'hoje':dd===1?'ontem':'há '+dd+' dias ('+fd(e.last)+')')+(e.owe&&rankM!=='late'?' · deve '+brl(e.owe):'')));
 var dg=waNum(e.c);if(dg&&rankM!=='top'){var a=el('div','acts');var w=el('a','btn small','WhatsApp');var nm=(e.c.name||'').trim().split(' ')[0];
 var msg=rankM==='gone'?'Oi'+(nm?', '+nm:'')+'! Tudo bem? Faz um tempinho que você não pega uma batida de açaí. Tenho fresquinha essa semana, quer que eu separe pra você?':cobMsg(e.c,cSales(e.c).filter(pend));
-w.href='https://wa.me/'+dg+'?text='+encodeURIComponent(msg);w.target='_blank';w.rel='noopener';a.appendChild(w);r.appendChild(a)}box.appendChild(r)})}
+waLink(w,dg,msg);a.appendChild(w);r.appendChild(a)}box.appendChild(r)})}
 document.querySelectorAll('#rankc .chips button').forEach(function(b){b.onclick=function(){rankM=b.getAttribute('data-r');renderRank()}});
 
 /* --- relatório com gráfico --- */
