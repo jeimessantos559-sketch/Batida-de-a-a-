@@ -977,7 +977,8 @@ function flObj(id){return fls().filter(function(f){return f.id===id})[0]}
 function unitP(fid,m){var f=flObj(fid),v=f?num(m==='cartao'?f.card:f.pix):0;return v||num(m==='cartao'?P.card:P.pix)}
 function flCost(fid){syncFl();var f=flObj(fid);if(!f)return unitCost();var y=num(f.yield)||1;return (f.ing||[]).reduce(function(t,i){return t+ingCost(i)},0)/y+packCost()}
 function liteRows(){var r=[];sales.forEach(function(s){r.push({t:s.createdAt||0,q:num(s.qty),v:val(s),fl:flOf(s),cid:s.clientId})});
-archives.forEach(function(a){(a.rows||[]).forEach(function(x){r.push({t:x.d||0,q:num(x.q),v:num(x.v),fl:x.fl||flOf({}),cn:x.c})})});return r}
+var ids={};clients.forEach(function(c){ids[c.id]=1});
+archives.forEach(function(a){(a.rows||[]).forEach(function(x){var isId=!!ids[x.c];r.push({t:x.d||0,q:num(x.q),v:num(x.v),fl:x.fl||flOf({}),cid:isId?x.c:null,cn:isId?x.n:(x.n||x.c)})})});return r}
 var DAY=864e5;
 function dayAdd(t,n){var d=new Date(t);d.setDate(d.getDate()+n);return sod(d)}
 function plural(n,a,b){return n+' '+(n===1?a:b)}
@@ -1014,7 +1015,8 @@ if($('#shopz'))$('#shopz').onclick=function(){shopFill({})};
 var rankM='top';
 function renderRank(){var box=$('#rankl');if(!box)return;box.textContent='';var today=sod(Date.now());
 var byName={};clients.forEach(function(c){byName[(c.name||'').trim().toLowerCase()]=c});var st={};
-liteRows().forEach(function(r){var c=r.cid?clients.filter(function(x){return x.id===r.cid})[0]:byName[(r.cn||'').trim().toLowerCase()];if(!c)return;var e=st[c.id]||(st[c.id]={c:c,q:0,v:0,last:0,n:0});e.q+=r.q;e.v+=r.v;e.n++;if(r.t>e.last)e.last=r.t});
+liteRows().forEach(function(r){var c=r.cid?clients.filter(function(x){return x.id===r.cid})[0]:byName[(r.cn||'').trim().toLowerCase()];if(!c)return;var e=st[c.id]||(st[c.id]={c:c,q:0,v:0,last:0,n:0,ts:[]});e.q+=r.q;e.v+=r.v;e.ts.push(r.t||0);if(r.t>e.last)e.last=r.t});
+Object.keys(st).forEach(function(k){var e=st[k],t=e.ts.sort(function(a,b){return a-b}),n=0,prev=-1e15;t.forEach(function(x){if(x-prev>12e4)n++;prev=x});e.n=n});
 var L=Object.keys(st).map(function(k){var e=st[k];var l=cSales(e.c).filter(pend);e.owe=owed(l);e.late=l.filter(function(s){return s.due&&sod(s.due)<today}).reduce(function(t,s){return t+val(s)},0);return e});
 document.querySelectorAll('#rankc .chips button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-r')===rankM)});
 var hint=$('#rankh');
