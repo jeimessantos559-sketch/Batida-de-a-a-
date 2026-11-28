@@ -166,7 +166,7 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div id="swarn" class="calcnote" role="alert" hidden style="border:2px solid var(--bad);margin-top:12px"><b id="swt" class="bad" style="display:block;margin-bottom:6px"></b><span id="swm"></span><div class="acts" style="margin-top:10px"><button class="btn small" id="swok" type="button">Vender mesmo assim</button><button class="btn ghost small" id="swno" type="button">Cancelar</button></div></div>
 <label class="ck" style="display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--ink);font-size:15px"><input type="checkbox" id="wauto" style="width:24px;height:24px;flex:none"> Abrir o WhatsApp do cliente com a mensagem e o Pix ao salvar</label>
 <button class="btn full" id="add">Salvar</button>
-<div id="wabox" class="calcnote" hidden style="margin-top:12px"><span id="watx"></span><div class="acts" style="margin-top:10px"><a class="btn small" id="walk" target="_blank" rel="noopener">Enviar no WhatsApp</a><button class="btn ghost small" id="wax" type="button">Fechar</button></div></div>
+<div id="wabox" class="calcnote" hidden style="margin-top:12px"><span id="watx"></span><div class="acts" style="margin-top:10px"><a class="btn small" id="walk" target="_blank" rel="noopener">1º: enviar mensagem</a><a class="btn small" id="wapix" target="_blank" rel="noopener" hidden style="background:#2bb673;border-color:#2bb673;color:#fff">2º: enviar Pix Copia e Cola</a><button class="btn ghost small" id="wax" type="button">Fechar</button></div></div>
 </div>
 <div class="card">
 <h2>Planilha de vendas</h2>
@@ -188,6 +188,15 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 <div class="chips"><button data-g="d" aria-pressed="true">Últimos 14 dias</button><button data-g="m" aria-pressed="false">Últimos 6 meses</button></div>
 <p class="sub" id="reps" style="margin:6px 0 4px"></p><div id="repg"></div><p class="sub" id="repd" style="margin:8px 0 0" aria-live="polite"></p>
 <h2 style="margin-top:16px">Por sabor neste mês</h2><div id="repf"></div></div>
+<div class="card" id="bulkc"><h2>Mensagem para vários clientes</h2>
+<p class="sub" style="margin:0 0 10px">Escreva a mensagem, marque os clientes e toque em <b>Começar envio</b>. O WhatsApp abre um cliente por vez: você envia, volta aqui e toca no próximo. Use <b>{nome}</b> para colocar o primeiro nome de cada um.</p>
+<div class="chips" id="bkpre" style="flex-wrap:wrap"></div>
+<label for="bkmsg">Mensagem</label><textarea id="bkmsg" rows="5" style="width:100%"></textarea>
+<label for="bkq" style="margin-top:10px">Clientes</label><input id="bkq" placeholder="Buscar por nome" aria-label="Buscar cliente">
+<div class="acts" style="margin:8px 0"><button class="btn small" id="bkall" type="button">Selecionar todos</button><button class="btn ghost small" id="bknone" type="button">Limpar</button></div>
+<p class="sub" id="bkcount" style="margin:0 0 6px"></p><div id="bklist" style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:0 10px"></div>
+<button class="btn" id="bkgo" type="button" style="width:100%;margin-top:12px">Começar envio</button>
+<div id="bkrun" class="calcnote" hidden style="margin-top:12px"></div></div>
 <div class="card" id="bkpc"><h2>Cópia de segurança</h2><p class="sub" style="margin:0 0 8px">O app já guarda uma cópia automática do banco todo dia. Se quiser uma cópia sua, baixe o arquivo abaixo e guarde no Drive ou no WhatsApp.</p>
 <button class="btn ghost" id="bkpb" type="button">Baixar cópia de todos os dados</button><p class="sub" id="bkps" style="margin:8px 0 0" aria-live="polite"></p></div>
 <div class="card">
@@ -484,7 +493,11 @@ function pixFor(v){var c=Math.round(num(v)*100);if(c===1500)return PIX;if(c===30
 function first(c){return (c.name||'').trim().split(' ')[0]}
 function waNum(c){var dg=(c.phone||'').replace(/\D/g,'');if(dg.length>=10&&dg.length<=11)dg='55'+dg;return dg.length<12?'':dg}
 
-function waLink(a,num,text){a.href='https://wa.me/'+(num||'')+'?text='+encodeURIComponent(text);a.target='_blank';a.rel='noopener';return a}
+function waSplit(t){var k=t.lastIndexOf('\n\nPix Copia e Cola');if(k<0)return {m:t,code:''};return {m:t.slice(0,k)+'\n\nO código Pix vai na próxima mensagem.',code:t.slice(k+2)}}
+function waUrl(num,text){return 'https://wa.me/'+(num||'')+'?text='+encodeURIComponent(text)}
+function waLink(a,num,text){var sp=waSplit(text);a.href=waUrl(num,sp.m);a.target='_blank';a.rel='noopener';if(!sp.code)return a;
+a.addEventListener('click',function(){if(a.__px&&a.__px.isConnected)return;var b=el('a','btn small','2º: enviar Pix Copia e Cola');b.href=waUrl(num,sp.code);b.target='_blank';b.rel='noopener';
+b.style.cssText='background:#2bb673;border-color:#2bb673;color:#fff';a.__px=b;setTimeout(function(){a.insertAdjacentElement('afterend',b)},300)});return a}
 function waMsg(c){var nm=first(c),all=cSales(c),pl=all.filter(pend),ow=owed(all);
 var last=all.reduce(function(m,x){return Math.max(m,sod(x.createdAt||0))},0),L=all.filter(function(x){return sod(x.createdAt||0)===last});
 if(!L.length)return 'Olá'+(nm?', '+nm:'')+'! Tudo bem?\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
@@ -606,10 +619,10 @@ var nt=$('#co').value.trim(),ph=$('#cp').value.trim();
 if(busy)return;var key=n.toLowerCase();var ex=clients.filter(function(c){return (c.name||'').trim().toLowerCase()===key})[0]||known[key];
 var qn=nq,mm=pm,du=dueV(),fq=sfKeys().map(function(k){return [k,sfq[k]]});
 if(qn>0){var phone=ph||(ex&&ex.phone)||'';var prev=ex?owed(cSales(ex)):0;var val=fq.reduce(function(t,x){return t+x[1]*unitP(x[0],mm)},0);
-var msg=saleMsg(n,fq,mm,du,mm==='cartao'?0:prev);var dg=waNum({phone:phone});var url='https://wa.me/'+dg+'?text='+encodeURIComponent(msg);
+var msg=saleMsg(n,fq,mm,du,mm==='cartao'?0:prev);var dg=waNum({phone:phone});var sp=waSplit(msg);var url=waUrl(dg,sp.m);$('#wapix').hidden=!sp.code;if(sp.code)$('#wapix').href=waUrl(dg,sp.code);
 $('#walk').href=url;$('#watx').textContent=dg?'Mensagem com o Pix pronta para '+n+'.':'Este cliente não tem WhatsApp cadastrado. Toque abaixo para escolher o contato.';
 var opened=false;if($('#wauto').checked&&dg){try{opened=!!window.open(url,'_blank')}catch(e){}}
-$('#wabox').hidden=opened&&!!dg;if(opened)$('#watx').textContent='WhatsApp aberto para '+n+'.'}
+$('#wabox').hidden=opened&&!!dg&&!sp.code;if(opened)$('#watx').textContent='WhatsApp aberto para '+n+'.'+(sp.code?' Depois de enviar, volte aqui e toque em "2º: enviar Pix Copia e Cola".':'')}
 var done=function(c){if(c&&qn>0)fq.forEach(function(x){addSale(c,x[1],mm,du,0,x[0])})};
 if(ex){done(ex)}else{busy=true;$('#add').disabled=true;addClient({type:'client',name:n,phone:ph,note:nt,createdAt:Date.now()}).then(function(c){if(c){known[key]=c;setTimeout(function(){delete known[key]},10000)}done(c)}).then(function(){busy=false;$('#add').disabled=false},function(){busy=false;$('#add').disabled=false})}
 $('#cn').value='';$('#cp').value='';$('#co').value='';sfq={};renderSfQty();$('#tv').textContent='✔ Salvo!';setTimeout(showTotal,1800);$('#cn').focus()};
@@ -1056,7 +1069,34 @@ if($('#bkpb'))$('#bkpb').onclick=function(){var data={app:'Batida de Açaí',ger
 var blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),name='batida-copia-'+iso(Date.now())+'.json';
 var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();$('#bkps').textContent='Cópia baixada: '+name+' ('+plural(sales.length,'venda','vendas')+', '+plural(clients.length,'cliente','clientes')+', '+plural(orders.length,'pedido','pedidos')+').'};
 
-function renderExtra(){try{renderToday();renderRank();renderReport();fillFlPrice();if($('#shopq')&&!$('#shopq').children.length)renderShopIn();else renderShop()}catch(e){console.error(e)}}
+/* --- mensagem para vários clientes --- */
+var bkSel={},bkQ=null,bkI=0,bkSent=0;
+function bkPresets(){var fl=fls().map(function(f){return f.name.toLowerCase()});var fj=fl.length>1?fl.slice(0,-1).join(', ')+' e '+fl[fl.length-1]:(fl[0]||'açaí');
+return [['Tem batida hoje','Oi, {nome}! Tudo bem? Hoje tem batida de açaí fresquinha: '+fj+'. Quer que eu separe a sua?'],
+['Encomendas','Oi, {nome}! Tudo bem? Estou fechando as encomendas de batida de açaí. Quer garantir a sua? É só me responder com o sabor e a quantidade.'],
+['Agradecer','Oi, {nome}! Passando para agradecer pela preferência. Sua opinião é muito importante, me conta o que achou da batida!']]}
+function bkInit(){var pb=$('#bkpre');if(!pb||pb.children.length)return;bkPresets().forEach(function(x){var b=el('button','',x[0]);b.type='button';b.onclick=function(){$('#bkmsg').value=bkPresets().filter(function(y){return y[0]===x[0]})[0][1];bkSave()};pb.appendChild(b)});
+var sv='';try{sv=localStorage.getItem('batida-bulk-msg')||''}catch(e){}$('#bkmsg').value=sv||bkPresets()[0][1];$('#bkmsg').oninput=bkSave;$('#bkq').oninput=renderBulk;
+$('#bkall').onclick=function(){bkVis().forEach(function(c){bkSel[c.id]=1});renderBulk()};$('#bknone').onclick=function(){bkSel={};renderBulk()};$('#bkgo').onclick=bkStart}
+function bkSave(){try{localStorage.setItem('batida-bulk-msg',$('#bkmsg').value)}catch(e){}}
+function bkVis(){var q=($('#bkq').value||'').trim().toLowerCase();return clients.filter(function(c){return waNum(c)&&(!q||(c.name||'').toLowerCase().indexOf(q)>=0)}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'','pt-BR')})}
+function renderBulk(){var box=$('#bklist');if(!box)return;bkInit();box.textContent='';var L=bkVis();
+L.forEach(function(c){var r=document.createElement('label');r.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;margin:0';
+var i=document.createElement('input');i.type='checkbox';i.checked=!!bkSel[c.id];i.style.cssText='width:22px;height:22px;flex:none';i.onchange=function(){if(i.checked)bkSel[c.id]=1;else delete bkSel[c.id];bkCount()};
+r.appendChild(i);var t=el('span','',c.name||'Cliente');t.style.flex='1';r.appendChild(t);r.appendChild(el('span','sub',c.phone||''));box.appendChild(r)});
+if(!L.length)box.appendChild(el('p','empty','Nenhum cliente com WhatsApp encontrado.'));bkCount()}
+function bkCount(){var n=Object.keys(bkSel).filter(function(id){return clients.some(function(c){return c.id===id})}).length,tot=clients.filter(function(c){return waNum(c)}).length;
+$('#bkcount').textContent=n+(n===1?' cliente selecionado':' clientes selecionados')+' de '+tot+' com WhatsApp.';$('#bkgo').textContent=n?'Começar envio ('+n+')':'Começar envio';$('#bkgo').disabled=!n}
+function bkStart(){var msg=($('#bkmsg').value||'').trim();if(!msg){$('#bkmsg').focus();return}
+bkQ=clients.filter(function(c){return bkSel[c.id]&&waNum(c)}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'','pt-BR')});bkI=0;bkSent=0;renderRun();$('#bkrun').scrollIntoView({block:'center'})}
+function renderRun(){var box=$('#bkrun');box.hidden=false;box.textContent='';var msg=$('#bkmsg').value.trim();
+if(bkI>=bkQ.length){box.appendChild(el('b','','Pronto! Mensagem aberta para '+bkSent+(bkSent===1?' cliente.':' clientes.')));var ok=el('button','btn ghost small','Fechar');ok.type='button';ok.style.marginTop='8px';ok.onclick=function(){box.hidden=true;bkQ=null};box.appendChild(document.createElement('br'));box.appendChild(ok);return}
+var c=bkQ[bkI],nm=(c.name||'').trim().split(' ')[0];var bar=el('div','');bar.style.cssText='height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin:0 0 10px';var fi=el('i','');fi.style.cssText='display:block;height:100%;background:var(--brand);width:'+Math.round(bkI/bkQ.length*100)+'%';bar.appendChild(fi);box.appendChild(bar);
+box.appendChild(el('div','sub',(bkI+1)+' de '+bkQ.length));var a=el('a','btn','Abrir WhatsApp de '+(c.name||'cliente'));a.style.cssText='display:block;width:100%;margin:8px 0;text-align:center';a.href=waUrl(waNum(c),msg.replace(/\{nome\}/gi,nm));a.target='_blank';a.rel='noopener';
+a.onclick=function(){bkSent++;bkI++;setTimeout(renderRun,400)};box.appendChild(a);
+var acts=el('div','acts');var sk=el('button','btn ghost small','Pular');sk.type='button';sk.onclick=function(){bkI++;renderRun()};var st=el('button','btn ghost small','Parar');st.type='button';st.onclick=function(){bkI=bkQ.length;renderRun()};acts.appendChild(sk);acts.appendChild(st);box.appendChild(acts);
+box.appendChild(el('p','sub','Depois de enviar no WhatsApp, volte para o app: o próximo cliente já estará pronto.'))}
+function renderExtra(){try{renderToday();renderRank();if($('#bklist')&&!bkQ)renderBulk();renderReport();fillFlPrice();if($('#shopq')&&!$('#shopq').children.length)renderShopIn();else renderShop()}catch(e){console.error(e)}}
 window.__renderExtra=renderExtra;
 
 fillPricing();renderClients();renderOrders();renderExp();renderExtra();if(!(window.claude&&claude.use))runArchive();setTimeout(function(){if(!col)runArchive()},12000);
@@ -1115,9 +1155,9 @@ function showOForm(on){oform.hidden=!on;ob.hidden=on;if(on){oform.scrollIntoView
 window.__showOForm=showOForm;$('#onewb').onclick=function(){showOForm(true)};ox.onclick=function(){showOForm(false)};showOForm(false);
 $('#oadd').addEventListener('click',function(){setTimeout(function(){var t=$('#otv');if(t&&/^✔/.test(t.textContent)){showOForm(false);var h=$('#och');if(h)h.scrollIntoView({block:'start'})}},60)})}
 // Clientes: Lista | Ranking
-var cst=document.createElement('div');cst.className='subtabs';cst.innerHTML='<button type="button" data-c="list" aria-pressed="true">Lista</button><button type="button" data-c="rank" aria-pressed="false">Ranking</button>';
-S.cli.appendChild(cst);var cl=card('#cc'),rk=$('#rankc');if(cl)S.cli.appendChild(cl);if(rk)S.cli.appendChild(rk);
-function showCli(m){if(cl)cl.hidden=m!=='list';if(rk)rk.hidden=m!=='rank';cst.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-c')===m)});if(m==='rank'&&window.__renderExtra)window.__renderExtra()}
+var cst=document.createElement('div');cst.className='subtabs';cst.innerHTML='<button type="button" data-c="list" aria-pressed="true">Lista</button><button type="button" data-c="rank" aria-pressed="false">Ranking</button><button type="button" data-c="bulk" aria-pressed="false">Enviar a vários</button>';
+S.cli.appendChild(cst);var cl=card('#cc'),rk=$('#rankc'),bk=$('#bulkc');if(cl)S.cli.appendChild(cl);if(rk)S.cli.appendChild(rk);if(bk)S.cli.appendChild(bk);
+function showCli(m){if(cl)cl.hidden=m!=='list';if(rk)rk.hidden=m!=='rank';if(bk)bk.hidden=m!=='bulk';cst.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-c')===m)});if(m!=='list'&&window.__renderExtra)window.__renderExtra()}
 cst.querySelectorAll('button').forEach(function(b){b.onclick=function(){showCli(b.getAttribute('data-c'))}});showCli('list');
 // Mais: Gastos | Relatório | Receitas
 var st=document.createElement('div');st.className='subtabs';st.innerHTML='<button type="button" data-m="gastos" aria-pressed="true">Gastos</button><button type="button" data-m="rel" aria-pressed="false">Relatório</button><button type="button" data-m="precos" aria-pressed="false">Receitas</button>';
