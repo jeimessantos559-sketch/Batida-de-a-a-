@@ -493,7 +493,7 @@ function pixFor(v){var c=Math.round(num(v)*100);if(c===1500)return PIX;if(c===30
 function first(c){return (c.name||'').trim().split(' ')[0]}
 function waNum(c){var dg=(c.phone||'').replace(/\D/g,'');if(dg.length>=10&&dg.length<=11)dg='55'+dg;return dg.length<12?'':dg}
 
-function waSplit(t){var k=t.lastIndexOf('\n\nPix Copia e Cola');if(k<0)return {m:t,code:''};return {m:t.slice(0,k)+'\n\nO código Pix vai na próxima mensagem.',code:t.slice(k+2)}}
+function waSplit(t){var k=t.lastIndexOf('\n\nPix Copia e Cola');if(k<0)return {m:t,code:''};var m=t.slice(0,k),code=t.slice(t.indexOf('\n',k+2)+1).trim();if(m.indexOf('próxima mensagem')<0)m+='\n\nO código Pix vai na próxima mensagem.';return {m:m,code:'Pix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+code}}
 function waUrl(num,text){return 'https://wa.me/'+(num||'')+'?text='+encodeURIComponent(text)}
 function waLink(a,num,text){var sp=waSplit(text);a.href=waUrl(num,sp.m);a.target='_blank';a.rel='noopener';if(!sp.code)return a;
 a.addEventListener('click',function(){if(a.__px&&a.__px.isConnected)return;var b=el('a','btn small','2º: enviar Pix Copia e Cola');b.href=waUrl(num,sp.code);b.target='_blank';b.rel='noopener';
@@ -506,10 +506,16 @@ var lp=L.filter(pend),fi=lp.filter(function(x){return x.method==='fiado'&&x.due}
 return thanksMsg(nm,items,{paid:!lp.length&&!ow,method:!lp.length&&ow?'pix':fi?'fiado':lp.length&&lp.every(function(x){return x.method==='cartao'})?'cartao':'pix',due:fi?fi.due:0,prev:Math.round((ow-lv)*100)/100})}
 function cobMsg(c,list){
 var nm=first(c),tot=list.reduce(function(t,s){return t+val(s)},0),today=sod(Date.now());
-var dmin=Math.min.apply(null,list.map(function(s){return sod(s.due||today)}));
-var t='Olá'+(nm?', '+nm:'')+'! '+(dmin<today?'Lembrete: o pagamento da sua batida de açaí, combinado para '+fd(dmin)+', está em aberto.':dmin===today?'Lembrete: hoje é o dia do pagamento da sua batida de açaí.':'Lembrete: o pagamento da sua batida de açaí está combinado para '+fd(dmin)+'.');
-t+='\n\nValor a pagar: '+brl(tot)+' (Pix).';
-t+='\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(tot);
+var L=list.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
+var dues=L.map(function(s){return sod(s.due||today)}),dmin=Math.min.apply(null,dues),dmax=Math.max.apply(null,dues);
+var t='Olá'+(nm?', '+nm:'')+'! Tudo bem?\n\n';
+t+=dmin<today?'Passando para lembrar que o pagamento combinado para '+fd(dmin)+' ainda está em aberto:':dmin===today?'Passando para lembrar que hoje é o dia do pagamento combinado:':'Passando para lembrar do pagamento combinado para '+fd(dmin)+':';
+L.forEach(function(s){var q=num(s.qty);t+='\n- '+fd(s.createdAt||Date.now())+' - '+q+(q===1?' garrafa ':' garrafas ')+flName(flOf(s))+' - '+brl(val(s))});
+t+='\n\nTotal: '+brl(tot);
+t+='\nVencimento: '+(dmin===dmax?(dmin===today?'hoje ('+fd(dmin)+')':fd(dmin)):fd(dmin)+' a '+fd(dmax));
+t+='\n\nPara pagar, é só copiar o código Pix que vou mandar na próxima mensagem e colar no app do seu banco, na opção Pix Copia e Cola. Se já fez o pagamento, por favor desconsidere esta mensagem e me avise para eu dar baixa.';
+t+='\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
+t+='\n\nPix Copia e Cola:\n'+pixFor(tot);
 return t}
 function renderNext(today){var box=$('#cobnl');if(!box)return;box.textContent='';var lim=today+8*864e5,items=[];
 sales.forEach(function(s){if(pend(s)&&s.method==='fiado'&&s.due&&sod(s.due)>today&&sod(s.due)<lim){var c=clients.filter(function(x){return x.id===s.clientId})[0];items.push({n:c?c.name:'Cliente',d:s.due,v:val(s)})}});
@@ -590,13 +596,19 @@ $('#dcustom').value=iso(Date.now()+7*864e5);$('#dcustom').onchange=function(){sh
 document.querySelectorAll('#dseg button').forEach(function(b){b.onclick=function(){dd=+b.getAttribute('data-d');document.querySelectorAll('#dseg button').forEach(function(x){x.setAttribute('aria-checked',x===b)});showTotal()}});
 showTotal();
 $('#cn').onchange=function(){var k=this.value.trim().toLowerCase();var c=clients.filter(function(x){return (x.name||'').trim().toLowerCase()===k})[0];if(c&&c.phone&&!$('#cp').value)$('#cp').value=c.phone};
-function thanksMsg(nm,items,o){o=o||{};var fa=[];items.forEach(function(x){var n=String(x.n).toLowerCase();if(fa.indexOf(n)<0)fa.push(n)});var fj=fa.length>1?fa.slice(0,-1).join(', ')+' e '+fa[fa.length-1]:(fa[0]||'açaí');
-var t='Olá'+(nm?', '+nm:'')+'! Muito obrigado pela preferência! '+(fa.length>1?'Suas batidas de '+fj+' são feitas':'Sua batida de '+fj+' é feita')+' com muito carinho.';
-var tot=items.reduce(function(a,x){return a+x.v},0),due=Math.round((tot+(o.paid?0:(o.prev||0)))*100)/100;
-if(o.paid)return t+'\n\nPagamento recebido. Obrigado!';
-if(o.method==='cartao')return t+'\n\nValor: '+brl(tot)+' (cartão).';
-t+='\n\nValor a pagar: '+brl(due)+(o.method==='fiado'&&o.due?' (pagamento dia '+fd(o.due)+')':' (Pix)')+'.';
-return t+'\n\nPix Copia e Cola (copie o código abaixo e cole no app do seu banco):\n'+pixFor(due)}
+function thanksMsg(nm,items,o){o=o||{};var t='Olá'+(nm?', '+nm:'')+'! Tudo bem?\n\n';
+var fa=[];items.forEach(function(x){var n=String(x.n).toLowerCase();if(fa.indexOf(n)<0)fa.push(n)});var fj=fa.length>1?fa.slice(0,-1).join(', ')+' e '+fa[fa.length-1]:(fa[0]||'açaí');
+t+='Muito obrigado pela sua compra! '+(fa.length>1?'Suas batidas de '+fj+' foram feitas':'Sua batida de '+fj+' foi feita')+' com muito carinho, espero que goste.';
+var tot=items.reduce(function(a,x){return a+x.v},0);t+='\n\nResumo do pedido:';
+items.forEach(function(x){t+='\n- '+x.q+(x.q===1?' garrafa ':' garrafas ')+x.n+' - '+brl(x.v)});
+if(o.prev>0)t+='\n- Saldo anterior em aberto - '+brl(o.prev);
+var due=Math.round((tot+(o.paid?0:(o.prev||0)))*100)/100;t+='\n'+(due!==tot?'Total a pagar: ':'Total: ')+brl(due);var pix=false;
+if(o.paid)t+='\n\nPagamento recebido. Obrigado!';
+else if(o.method==='cartao')t+='\n\nPagamento no cartão.';
+else if(o.method==='fiado'){t+='\n\nPagamento combinado para '+fd(o.due)+'. Se preferir, já pode pagar pelo código Pix que vou mandar na próxima mensagem.';pix=true}
+else{t+='\n\nPara pagar, é só copiar o código Pix que vou mandar na próxima mensagem e colar no app do seu banco, na opção Pix Copia e Cola.';pix=true}
+t+='\n\nSe puder, me conta depois o que achou, sua opinião me ajuda muito!\n\nObrigado pela preferência!\nJeimes - Batida de Açaí';
+if(pix)t+='\n\nPix Copia e Cola:\n'+pixFor(due);return t}
 function saleMsg(name,fq,method,due,prev){var nm=(name||'').trim().split(' ')[0];
 return thanksMsg(nm,fq.map(function(x){return {n:flName(x[0]),q:x[1],v:x[1]*unitP(x[0],method)}}),{method:method,due:due,prev:prev||0})}
 try{$('#wauto').checked=localStorage.getItem('batida-wauto')!=='0'}catch(e){$('#wauto').checked=true}
